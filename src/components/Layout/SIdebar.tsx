@@ -1,0 +1,297 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { IconProps } from 'phosphor-react';
+import {
+  House,
+  FolderSimple,
+  MagnifyingGlass,
+  ChatDots,
+  User,
+  Gear,
+  CaretLeft,
+  SignOut,
+  Book as BookOpenText,
+  ListChecks,
+  UsersThree,
+  ChartLineUp,
+} from 'phosphor-react';
+import { usePathname } from 'next/navigation';
+import { useSidebarStore } from '@/store/Zustand';
+import { Switch } from '@/components/ui/switch';
+
+type NavItem = {
+  id: string;
+  label: string;
+  href: string;
+  Icon: (props: IconProps) => React.ReactNode;
+  badge?: string | number;
+  meta?: string;
+};
+
+const mainNavItems: NavItem[] = [
+  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', Icon: House },
+  {
+    id: 'projects',
+    label: 'Projects',
+    href: '/projects',
+    Icon: FolderSimple,
+    meta: '12',
+  },
+  {
+    id: 'discover',
+    label: 'Discover',
+    href: '/discover',
+    Icon: MagnifyingGlass,
+  },
+  {
+    id: 'messages',
+    label: 'Messages',
+    href: '/messages',
+    Icon: ChatDots,
+    badge: 3,
+  },
+  { id: 'profile', label: 'Profile', href: '/profile', Icon: User },
+  { id: 'settings', label: 'Settings', href: '/settings', Icon: Gear },
+];
+
+const interviewNavItems: NavItem[] = [
+  {
+    id: 'resources',
+    label: 'Resources',
+    href: '/interview-prep/resources',
+    Icon: BookOpenText,
+  },
+  {
+    id: 'practice',
+    label: 'Practice',
+    href: '/interview-prep/practice',
+    Icon: ListChecks,
+  },
+  {
+    id: 'Leetcode',
+    label: 'LeetCode',
+    href: '/interview-prep/leetcode/company-wise-question',
+    Icon: UsersThree,
+  },
+  {
+    id: 'tracker',
+    label: 'Progress Tracker',
+    href: '/interview-prep/tracker',
+    Icon: ChartLineUp,
+  },
+];
+
+export default function SIdebar() {
+  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+  const { mode, toggleMode, hydrateMode } = useSidebarStore();
+
+   useEffect(() => {
+    hydrateMode();
+  }, []);
+
+  const navItems = mode === 'main' ? mainNavItems : interviewNavItems;
+
+  return (
+    <aside
+      className={`flex flex-col h-screen border-r transition-all duration-300 ease-in-out ${
+        collapsed ? 'w-16' : 'w-64'
+      }`}
+      style={{
+        backgroundColor: 'var(--color-card)',
+        borderColor: 'var(--color-border)',
+        color: 'var(--color-card-foreground)'
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+            <Image
+              src="/logo.png"
+              alt="DevCollab logo"
+              width={24}
+              height={24}
+              className="object-cover"
+            />
+          </div>
+          
+          {!collapsed && (
+            <div>
+              <h1 className="text-lg font-bold" style={{ color: 'var(--color-card-foreground)' }}>DevCollab</h1>
+              <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Connect • Build • Ship</p>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="p-1.5 rounded-lg transition-all duration-200"
+          style={{
+            color: 'var(--color-card-foreground)',
+            backgroundColor: 'transparent'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--color-accent)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          <CaretLeft 
+            size={16} 
+            className={`transition-transform ${
+              collapsed ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Interview Prep Switch */}
+      {!collapsed && (
+        <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="flex items-center gap-3 p-3 rounded-lg transition-all duration-200" style={{ 
+            backgroundColor: mode === 'interview' ? 'var(--color-primary)' : 'var(--color-accent)',
+            color: mode === 'interview' ? 'var(--color-primary-foreground)' : 'var(--color-card-foreground)'
+          }}>
+            <Switch
+              checked={mode === 'interview'}
+              onCheckedChange={toggleMode}
+              id="interview-switch"
+            />
+            <label htmlFor="interview-switch" className="text-sm font-medium cursor-pointer">
+              Interview Prep
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 overflow-auto">
+        <ul className="space-y-2">
+          {navItems.map((item) => {
+            const active = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            
+            return (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${
+                    active ? 'border' : ''
+                  }`}
+                  style={{
+                    backgroundColor: active ? 'var(--color-primary)' : 'transparent',
+                    color: active ? 'var(--color-primary-foreground)' : 'var(--color-card-foreground)',
+                    borderColor: active ? 'var(--color-ring)' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = 'var(--color-accent)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors`} style={{
+                    backgroundColor: active ? 'var(--color-primary-foreground)' : 'var(--color-accent)',
+                    color: active ? 'var(--color-primary)' : 'var(--color-card-foreground)'
+                  }}>
+                    <item.Icon size={18} weight={active ? 'bold' : 'regular'} />
+                  </div>
+                  
+                  {!collapsed && (
+                    <div className="flex items-center justify-between flex-1 min-w-0">
+                      <span className="font-medium truncate">{item.label}</span>
+                      
+                      <div className="flex items-center gap-2">
+                        {item.meta && (
+                          <span className="px-2 py-0.5 text-xs rounded-full font-medium" style={{
+                            backgroundColor: 'var(--color-muted)',
+                            color: 'var(--color-muted-foreground)'
+                          }}>
+                            {item.meta}
+                          </span>
+                        )}
+                        {item.badge && (
+                          <span className="px-2 py-0.5 text-xs rounded-full font-bold" style={{
+                            backgroundColor: 'var(--color-destructive)',
+                            color: 'var(--color-destructive-foreground)'
+                          }}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Footer / Profile */}
+      <div className="p-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+            RD
+          </div>
+          
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <div className="truncate">
+                  <span className="text-sm font-medium block" style={{ color: 'var(--color-card-foreground)' }}>Rameswar</span>
+                  <span className="text-xs block" style={{ color: 'var(--color-muted-foreground)' }}>
+                    Frontend • Open Source
+                  </span>
+                </div>
+                
+                <button 
+                  className="p-1.5 rounded-lg transition-all duration-200"
+                  style={{
+                    color: 'var(--color-card-foreground)',
+                    backgroundColor: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--color-accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <SignOut size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {collapsed && (
+            <button 
+              className="p-1.5 rounded-lg transition-all duration-200 ml-auto"
+              style={{
+                color: 'var(--color-card-foreground)',
+                backgroundColor: 'transparent'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              <SignOut size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
