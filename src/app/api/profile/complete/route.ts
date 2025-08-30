@@ -2,11 +2,12 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/Prisma";
 import { extractUserProfileData } from "@/utils/ProfileExtractor";
 import { storeUserEmbedding } from "@/utils/Pinecone";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
   try {
     // 1. Get authenticated user
-    const session = await getServerSession();
+     const session = await getServerSession(authOptions); // <-- Pass authOptions here!
     if (!session?.user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -188,9 +188,15 @@ model User {
   createdEvents         Event[]
   reports               Report[]                @relation("ReportCreator")
   reportedBy            Report[]                @relation("ReportedUser")
-  notifications         Notification[]
   apiKeys               ApiKey[]
   suggestionCache       UserSuggestionCache? 
+  profileProgress ProfileProgress?
+  connectionPrivacy ConnectionPrivacy?
+  sentNotifications     Notification[] @relation("NotificationSender")
+  receivedNotifications Notification[] @relation("NotificationReceiver")
+  notificationPreferences NotificationPreference[]
+  messageReactions MessageReaction[]
+  messageReads     MessageRead[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,6 +213,17 @@ model UserSuggestionCache {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_suggestion_cache")
+}
+
+model ProfileProgress {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  currentSection String  // "basic", "education", "experience", "project", "skills"
+  lastUpdated   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_progress")
 }
 
 
@@ -562,6 +579,37 @@ model Connection {
   @@map("connections")
 }
 
+enum ConnectionPrivacyLevel {
+  EVERYONE
+  CONNECTIONS_ONLY
+  MUTUAL_CONNECTIONS
+  NOBODY
+}
+
+enum ConnectionRequestLevel {
+  EVERYONE
+  VERIFIED_ONLY
+  CONNECTIONS_ONLY
+  NOBODY
+}
+
+model ConnectionPrivacy {
+  id                        String                  @id @default(cuid())
+  userId                    String                  @unique
+  connectionPrivacyLevel    ConnectionPrivacyLevel  @default(EVERYONE)
+  connectionRequestLevel    ConnectionRequestLevel  @default(EVERYONE)
+  hideConnections           Boolean                 @default(false)
+  autoDeclineRequests       Boolean                 @default(false)
+  blockedUserIds            String[]                // Array of blocked user IDs
+
+  user                      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+
+  @@map("connection_privacy")
+}
+
 // ============================================================================
 // MESSAGING & COMMUNICATION MODELS
 // ============================================================================
@@ -572,6 +620,53 @@ enum ChatType {
   PROJECT
 }
 
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String   // Unicode emoji or custom emoji
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("message_reads")
+}
+
+model ChatSettings {
+  id                String   @id @default(cuid())
+  chatId            String   @unique
+  allowFileSharing  Boolean  @default(true)
+  allowReactions    Boolean  @default(true)
+  allowPolls        Boolean  @default(true)
+  muteNotifications Boolean  @default(false)
+  autoDeleteAfter   Int?     // Days (null = never)
+  maxParticipants   Int?     // For group chats
+  isPublic          Boolean  @default(false)
+  inviteCode        String?  @unique // For public group invites
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("chat_settings")
+}
+
 model Chat {
   id          String    @id @default(cuid())
   type        ChatType
@@ -580,9 +675,15 @@ model Chat {
   projectId   String?
   isActive    Boolean   @default(true)
   
+  // Add new fields
+  lastMessageId String?
+  lastMessageAt DateTime?
+  avatarUrl     String?
+  
   project      Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   participants ChatParticipant[]
   messages     Message[]
+  settings     ChatSettings?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -612,6 +713,12 @@ enum MessageType {
   FILE
   CODE
   SYSTEM
+  AUDIO
+  VIDEO
+  LOCATION
+  CONTACT
+  POLL
+  REACTION
 }
 
 model Message {
@@ -631,9 +738,17 @@ model Message {
   // File attachments
   attachments Json?     // Array of file objects
   
-  chat     Chat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  sender   User  @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User? @relation("MessageReceiver", fields: [receiverId], references: [id])
+  // Add new fields
+  replyToId  String?    // For message replies
+  replyTo    Message?   @relation("MessageReply", fields: [replyToId], references: [id])
+  replies    Message[]  @relation("MessageReply")
+  
+  // Relations
+  chat       Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender     User              @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User?             @relation("MessageReceiver", fields: [receiverId], references: [id])
+  reactions  MessageReaction[]
+  reads      MessageRead[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -833,35 +948,151 @@ model EventParticipant {
 // ============================================================================
 
 enum NotificationType {
+  // Connection notifications
   CONNECTION_REQUEST
   CONNECTION_ACCEPTED
+  CONNECTION_DECLINED
+  CONNECTION_BLOCKED
+  
+  // Project notifications
   PROJECT_INVITATION
+  PROJECT_JOINED
+  PROJECT_LEFT
+  PROJECT_UPDATED
+  
+  // Task notifications
   TASK_ASSIGNED
   TASK_COMPLETED
+  TASK_COMMENTED
+  TASK_DUE_SOON
+  COMMENT_ADDED  // Add this back
+  
+  // Message notifications
   MESSAGE_RECEIVED
-  COMMENT_ADDED
+  MESSAGE_MENTIONED
+  
+  // System notifications
   ACHIEVEMENT_UNLOCKED
   EVENT_REMINDER
   SYSTEM_ANNOUNCEMENT
+  PROFILE_VIEWED
 }
 
 model Notification {
-  id       String           @id @default(cuid())
-  userId   String
-  type     NotificationType
-  title    String
-  message  String
-  data     Json?            // Additional notification data
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?            // Additional notification data
   
-  isRead   Boolean   @default(false)
-  readAt   DateTime?
+  // Enhanced fields
+  priority    NotificationPriority @default(NORMAL)
+  category    NotificationCategory
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
   
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Action-related fields
+  actionUrl   String?          // URL to navigate when clicked
+  actionText  String?          // Text for action button
   
-  createdAt DateTime @default(now())
+  // Sender information
+  senderId    String?          // Who triggered the notification
+  sender      User?            @relation("NotificationSender", fields: [senderId], references: [id])
+  
+  // Expiration and scheduling
+  expiresAt   DateTime?
+  scheduledAt DateTime?        // For delayed notifications
+  
+  // Delivery tracking
+  deliveredAt DateTime?
+  deliveryMethod NotificationDeliveryMethod @default(IN_APP)
+  
+  user        User             @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("notifications")
 }
+
+// New enums
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationCategory {
+  CONNECTION
+  PROJECT
+  TASK
+  MESSAGE
+  ACHIEVEMENT
+  SYSTEM
+  EVENT
+}
+
+enum NotificationDeliveryMethod {
+  IN_APP
+  EMAIL
+  PUSH
+  SMS
+}
+
+// User notification preferences
+model NotificationPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  category              NotificationCategory
+  inAppEnabled          Boolean  @default(true)
+  emailEnabled          Boolean  @default(false)
+  pushEnabled           Boolean  @default(false)
+  smsEnabled            Boolean  @default(false)
+  
+  // Frequency settings
+  digestFrequency       DigestFrequency @default(DAILY)
+  quietHoursStart       String?         // "22:00"
+  quietHoursEnd         String?         // "08:00"
+  timezone              String          @default("UTC")
+  
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([userId, category])
+  @@map("notification_preferences")
+}
+
+enum DigestFrequency {
+  IMMEDIATE
+  HOURLY
+  DAILY
+  WEEKLY
+  NEVER
+}
+
+// Notification templates for dynamic content
+model NotificationTemplate {
+  id          String           @id @default(cuid())
+  type        NotificationType @unique
+  title       String
+  message     String
+  actionUrl   String?
+  actionText  String?
+  priority    NotificationPriority @default(NORMAL)
+  category    NotificationCategory
+  isActive    Boolean          @default(true)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("notification_templates")
+}
+
+
 
 // ============================================================================
 // REPORTING & MODERATION MODELS

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/Prisma';
 import { getAuthSession } from '@/utils/Authorize';
 
 // Define enums as TypeScript union types (keep in sync with your schema)
 type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
 type ProjectVisibility = 'PUBLIC' | 'PRIVATE' | 'CONNECTIONS_ONLY';
 
-const prisma = new PrismaClient();
+
 
 // GET: List all projects owned by the authenticated user
 export async function GET(req: NextRequest) {

@@ -14,8 +14,6 @@ export async function GET(request: NextRequest) {
 
         const userId = session.user.id;
       
-       
-
         // Check cache ONCE
         const cache = await prisma.userSuggestionCache.findUnique({ where: { userId } });
         const now = new Date();
@@ -33,7 +31,8 @@ export async function GET(request: NextRequest) {
         const similarUsers = await findSimilarUsers(userId, {
             limit,
             filterByLocation: location,
-            filterByExperienceLevel: experienceLevel
+            filterByExperienceLevel: experienceLevel,
+            minScore: 0.5
         });
 
         const enhancedUsers = await Promise.all(

@@ -218,3 +218,18 @@
   background: var(--color-card) !important;
   color: var(--color-card-foreground) !important;
 }
+
+/* Add these styles for the Rate component */
+.antd-rate .ant-rate-star {
+  color: var(--muted-foreground);
+}
+
+.antd-rate .ant-rate-star-full .ant-rate-star-second,
+.antd-rate .ant-rate-star-full svg {
+  color: var(--primary);
+}
+
+.antd-rate .ant-rate-star:hover {
+  color: var(--primary);
+}
+

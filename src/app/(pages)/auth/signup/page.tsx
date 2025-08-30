@@ -23,6 +23,28 @@ export default function SignupPage() {
 
   const { setSignupCredentials } = useSignupContext();
 
+  const calculatePasswordStrength = (password: string) => {
+    if (!password) return { score: 0, label: '', color: '' };
+    
+    let score = 0;
+    const feedback = [];
+    
+    if (password.length >= 8) score += 1;
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    if (score === 0) return { score: 0, label: 'Very Weak', color: 'bg-red-500' };
+    if (score === 1) return { score: 1, label: 'Weak', color: 'bg-orange-500' };
+    if (score === 2) return { score: 2, label: 'Fair', color: 'bg-yellow-500' };
+    if (score === 3) return { score: 3, label: 'Good', color: 'bg-blue-500' };
+    if (score === 4) return { score: 4, label: 'Strong', color: 'bg-green-500' };
+    return { score: 5, label: 'Very Strong', color: 'bg-emerald-600' };
+  };
+
+  const passwordStrength = calculatePasswordStrength(form.password);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -182,6 +204,34 @@ export default function SignupPage() {
                 transition-all
               "
             />
+            {/* Password Strength Bar */}
+            {form.password && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[var(--muted-foreground)]">Password strength:</span>
+                  <span className={`font-medium ${
+                    passwordStrength.score <= 1 ? 'text-red-500' :
+                    passwordStrength.score === 2 ? 'text-orange-500' :
+                    passwordStrength.score === 3 ? 'text-blue-500' :
+                    passwordStrength.score === 4 ? 'text-green-500' :
+                    'text-emerald-600'
+                  }`}>
+                    {passwordStrength.label}
+                  </span>
+                </div>
+                <div className="w-full bg-[var(--muted)] rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                    style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                  />
+                </div>
+                <div className="text-xs text-[var(--muted-foreground)]">
+                  {passwordStrength.score < 3 && (
+                    <span>Tip: Use uppercase, lowercase, numbers, and special characters</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <button
             type="submit"

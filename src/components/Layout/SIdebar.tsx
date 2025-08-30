@@ -22,6 +22,7 @@ import {
 import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/store/Zustand';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/context/AuthContext';
 
 type NavItem = {
   id: string;
@@ -54,7 +55,7 @@ const mainNavItems: NavItem[] = [
     Icon: ChatDots,
     badge: 3,
   },
-  { id: 'profile', label: 'Profile', href: '/profile', Icon: User },
+  { id: 'profile', label: 'Collaborate', href: '/collaborate', Icon: User },
   { id: 'settings', label: 'Settings', href: '/settings', Icon: Gear },
 ];
 
@@ -89,8 +90,9 @@ export default function SIdebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const { mode, toggleMode, hydrateMode } = useSidebarStore();
+ const { user } = useAuth() ?? {};
 
-   useEffect(() => {
+  useEffect(() => {
     hydrateMode();
   }, []);
 
@@ -99,7 +101,7 @@ export default function SIdebar() {
   return (
     <aside
       className={`flex flex-col h-screen border-r transition-all duration-300 ease-in-out ${
-        collapsed ? 'w-16' : 'w-64'
+        collapsed ? 'w-16' : 'w-60'
       }`}
       style={{
         backgroundColor: 'var(--color-card)',
@@ -122,7 +124,7 @@ export default function SIdebar() {
           
           {!collapsed && (
             <div>
-              <h1 className="text-lg font-bold" style={{ color: 'var(--color-card-foreground)' }}>DevCollab</h1>
+              <h1 className="text-base font-bold" style={{ color: 'var(--color-card-foreground)' }}>DevCollab</h1>
               <p className="text-xs" style={{ color: 'var(--color-muted-foreground)' }}>Connect • Build • Ship</p>
             </div>
           )}
@@ -151,24 +153,7 @@ export default function SIdebar() {
         </button>
       </div>
 
-      {/* Interview Prep Switch */}
-      {!collapsed && (
-        <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-          <div className="flex items-center gap-3 p-3 rounded-lg transition-all duration-200" style={{ 
-            backgroundColor: mode === 'interview' ? 'var(--color-primary)' : 'var(--color-accent)',
-            color: mode === 'interview' ? 'var(--color-primary-foreground)' : 'var(--color-card-foreground)'
-          }}>
-            <Switch
-              checked={mode === 'interview'}
-              onCheckedChange={toggleMode}
-              id="interview-switch"
-            />
-            <label htmlFor="interview-switch" className="text-sm font-medium cursor-pointer">
-              Interview Prep
-            </label>
-          </div>
-        </div>
-      )}
+    
 
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-auto">
@@ -208,7 +193,7 @@ export default function SIdebar() {
                   
                   {!collapsed && (
                     <div className="flex items-center justify-between flex-1 min-w-0">
-                      <span className="font-medium truncate">{item.label}</span>
+                      <span className="text-sm font-medium truncate">{item.label}</span>
                       
                       <div className="flex items-center gap-2">
                         {item.meta && (
@@ -239,59 +224,64 @@ export default function SIdebar() {
 
       {/* Footer / Profile */}
       <div className="p-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-            RD
-          </div>
-          
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <div className="truncate">
-                  <span className="text-sm font-medium block" style={{ color: 'var(--color-card-foreground)' }}>Rameswar</span>
-                  <span className="text-xs block" style={{ color: 'var(--color-muted-foreground)' }}>
-                    Frontend • Open Source
-                  </span>
-                </div>
-                
-                <button 
-                  className="p-1.5 rounded-lg transition-all duration-200"
-                  style={{
-                    color: 'var(--color-card-foreground)',
-                    backgroundColor: 'transparent'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <SignOut size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {collapsed && (
-            <button 
-              className="p-1.5 rounded-lg transition-all duration-200 ml-auto"
-              style={{
-                color: 'var(--color-card-foreground)',
-                backgroundColor: 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <SignOut size={16} />
-            </button>
+      <Link href="/profile" className="flex items-center gap-3 cursor-pointer group">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+          {user?.profilePictureUrl ? (
+            <img src={user.profilePictureUrl} alt="Profile" className="w-8 h-8 rounded-lg object-cover" />
+          ) : (
+            (user?.displayName || "U")[0]
           )}
         </div>
-      </div>
+        {!collapsed && (
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div className="truncate">
+                <span className="text-sm font-medium block" style={{ color: 'var(--color-card-foreground)' }}>
+                  {user?.displayName || "User"}
+                </span>
+                {/* <span className="text-xs block" style={{ color: 'var(--color-muted-foreground)' }}>
+                  {user?.firstName && user?.lastName
+                    ? `${user.firstName} • ${user.lastName}`
+                    : "Frontend • Open Source"}
+                </span> */}
+              </div>
+              <button 
+                className="p-1.5 rounded-lg transition-all duration-200"
+                style={{
+                  color: 'var(--color-card-foreground)',
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--color-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <SignOut size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+        {collapsed && (
+          <button 
+            className="p-1.5 rounded-lg transition-all duration-200 ml-auto"
+            style={{
+              color: 'var(--color-card-foreground)',
+              backgroundColor: 'transparent'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-accent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <SignOut size={16} />
+          </button>
+        )}
+      </Link>
+    </div>
     </aside>
   );
 }

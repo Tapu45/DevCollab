@@ -3,8 +3,6 @@ import { getServerSession, Session } from 'next-auth';
 import { prisma } from '@/lib/Prisma';
 import {authOptions} from '@/app/api/auth/[...nextauth]/route';
 
-
-
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions) as Session | null;
   if (!session || !session.user || !session.user.id) {
@@ -13,39 +11,47 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      displayName: true,
-      firstName: true,
-      lastName: true,
-      profilePictureUrl: true,
-      bio: true,
-      location: true,
-      timezone: true,
-      website: true,
-      githubUrl: true,
-      linkedinUrl: true,
-      profileVisibility: true,
-      showEmail: true,
-      showLocation: true,
-      allowMessages: true,
-      reputationScore: true,
-      totalContributions: true,
-      createdAt: true,
-      updatedAt: true,
-      skills: {
-        select: {
-          id: true,
-          name: true,
-          category: true,
-          proficiencyLevel: true,
-          isVerified: true,
-          yearsExperience: true,
-          lastUsed: true,
+    include: {
+      skills: true,
+      experiences: true,
+      educations: true,
+      ownedProjects: true,
+      projectCollaborations: true,
+      sentConnections: true,
+      receivedConnections: true,
+      sentMessages: true,
+      receivedMessages: true,
+      chatParticipants: true,
+      taskAssignments: true,
+      createdTasks: true,
+      comments: true,
+      achievements: true,
+      endorsements: true,
+      receivedEndorsements: true,
+      forumPosts: true,
+      forumReplies: true,
+      eventParticipations: true,
+      createdEvents: true,
+      reports: true,
+      reportedBy: true,
+      sentNotifications: true,        // <-- use this
+      receivedNotifications: true,    // <-- use this
+      apiKeys: true,
+      suggestionCache: true,
+      profileProgress: true,
+      subscription: {
+        include: {
+          plan: true,
+          invoices: true
         }
-      }
+      },
+      accounts: true,
+      sessions: true,
+      questionProgress: true,
+      connectionPrivacy: true,
+      notificationPreferences: true,
+      messageReactions: true,
+      messageReads: true
     }
   });
 

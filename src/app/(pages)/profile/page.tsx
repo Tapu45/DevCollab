@@ -1,46 +1,35 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Button, Space, Typography, Spin } from 'antd';
 import { PlusCircle as PlusOutlined, EyeClosed as CloseOutlined, Sparkles, Rocket, Target, Zap } from 'lucide-react';
 import CreateForm from './CreateForm';
 import ProfileView from './View';
+import { useQuery } from '@tanstack/react-query';
 
 const { Title, Paragraph } = Typography;
 
+// Query function to check if profile exists
+async function checkProfileExists(): Promise<boolean> {
+  const res = await fetch('/api/profile/exist');
+  if (res.status === 401) return false;
+  if (!res.ok) return false;
+  const data = await res.json();
+  return !!data.exists;
+}
+
 export default function ProfilePage() {
-  const [loading, setLoading] = useState(true);
-  const [hasProfile, setHasProfile] = useState<boolean | null>(null); // null = unknown
   const [showCreate, setShowCreate] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    async function checkProfile() {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/profile/exists');
-        if (!mounted) return;
-        if (res.status === 401) {
-          setHasProfile(false);
-        } else if (res.ok) {
-          const data = await res.json();
-          setHasProfile(!!data.exists);
-        } else {
-          setHasProfile(false);
-        }
-      } catch (err) {
-        console.error('profile check failed', err);
-        setHasProfile(false);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
+  // Use TanStack Query for profile existence
+  const { data: hasProfile, isLoading, isError } = useQuery({
+    queryKey: ['profile', 'exists'],
+    queryFn: checkProfileExists,
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  });
 
-    checkProfile();
-    return () => { mounted = false; };
-  }, []);
-
-  if (loading || hasProfile === null) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-120px)] bg-[var(--color-background)]">
         <Spin size="large" />
@@ -48,22 +37,36 @@ export default function ProfilePage() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-120px)] bg-[var(--color-background)]">
+        <Card>
+          <Title level={4}>Failed to check profile</Title>
+          <Paragraph type="danger">
+            There was an error checking your profile. Please try again later.
+          </Paragraph>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </Card>
+      </div>
+    );
+  }
+
   // If user opted to open the wizard, show it inline
   if (showCreate) {
-   return (
-    <div className="max-w-6xl mx-auto bg-[var(--background)] rounded-xl shadow-2xl">
-      <div className="flex justify-between items-center mb-6">
-        <Button 
-          onClick={() => setShowCreate(false)}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <CloseOutlined />
-          Back to overview
-        </Button>
+    return (
+      <div className="max-w-6xl mx-auto bg-[var(--background)] rounded-xl shadow-2xl">
+        {/* <div className="flex justify-between items-center mb-0">
+          <Button 
+            onClick={() => setShowCreate(false)}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <CloseOutlined />
+            Back to overview
+          </Button>
+        </div> */}
+        <CreateForm />
       </div>
-      <CreateForm />
-    </div>
-   );
+    );
   }
 
   // No profile -> show enhanced empty state with CTA
@@ -167,7 +170,7 @@ export default function ProfilePage() {
                     <div className="space-y-3">
                       <button
                         onClick={() => setShowCreate(true)}
-                        className="w-full group relative px-6 py-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground font-bold text-base rounded-xl shadow-xl hover:shadow-primary/25 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
+                        className="w-full group relative px-6 py-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground font-bold text-base rounded-xl shadow-xl hover:shadow-primary/25 transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 cursor-pointer"
                       >
                         <span className="relative z-10 flex items-center justify-center gap-2">
                           <Zap className="w-4 h-4" />
@@ -178,7 +181,7 @@ export default function ProfilePage() {
                       
                       <button
                         onClick={() => window.location.assign('/dashboard')}
-                        className="w-full px-6 py-2.5 border-2 border-border text-muted-foreground font-medium rounded-xl hover:border-primary/50 hover:text-foreground transition-all duration-300 text-sm"
+                        className="w-full px-6 py-2.5 border-2 border-border text-muted-foreground font-medium rounded-xl hover:border-primary/50 hover:text-foreground transition-all duration-300 text-sm cursor-pointer"
                       >
                         Maybe later (I'm still contemplating life choices)
                       </button>

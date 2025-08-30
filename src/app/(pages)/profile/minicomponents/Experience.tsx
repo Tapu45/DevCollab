@@ -33,13 +33,18 @@ type Props = {
   onPrev?: () => void;
 };
 
-export default function Experience({ value = [], onChange, onNext, onPrev }: Props) {
+export default function Experience({
+  value = [],
+  onChange,
+  onNext,
+  onPrev,
+}: Props) {
   const [form] = Form.useForm();
 
   function addExperience() {
     const vals = form.getFieldsValue();
     if (!vals.title || !vals.company || !vals.startDate) return;
-    
+
     const item: ExperienceInput = {
       title: vals.title,
       company: vals.company,
@@ -49,13 +54,13 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
       isCurrent: !!vals.isCurrent,
       responsibilities: vals.responsibilities?.trim(),
     };
-    
+
     onChange?.([...(value || []), item]);
     form.resetFields();
-    
+
     // Set default values back
     form.setFieldsValue({
-      isCurrent: false
+      isCurrent: false,
     });
   }
 
@@ -156,32 +161,76 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Start Date */}
                   <div className="space-y-2">
-                    <label className="block text-xs text-muted-foreground">Start Date</label>
+                    <label className="block text-xs text-muted-foreground">
+                      Start Date
+                    </label>
                     <Form.Item name="startDate" className="mb-0">
-                      <input
-                        type="date"
-                        className="w-full px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
-                      />
+                      <div className="relative">
+                        <Calendar
+                          className="absolute left-3 top-3.5 w-5 h-5 cursor-pointer"
+                          style={{ color: 'var(--primary)' }}
+                          strokeWidth={1.5}
+                          onClick={() => {
+                            const input =
+                              document.getElementById('startDateInput');
+                            if (input && 'showPicker' in input) {
+                              (input as HTMLInputElement).showPicker();
+                            }
+                            input && input.click(); // fallback
+                          }}
+                        />
+                        <input
+                          id="startDateInput"
+                          type="date"
+                          className="w-full pl-10 px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+                          onMouseDown={(e) => e.preventDefault()} // prevent manual open
+                        />
+                      </div>
                     </Form.Item>
                   </div>
 
                   {/* End Date */}
                   <div className="space-y-2">
-                    <label className="block text-xs text-muted-foreground">End Date</label>
+                    <label className="block text-xs text-muted-foreground">
+                      End Date
+                    </label>
                     <Form.Item name="endDate" className="mb-0">
-                      <input
-                        type="date"
-                        className="w-full px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
-                        disabled={form.getFieldValue('isCurrent')}
-                      />
+                      <div className="relative">
+                        <Calendar
+                          className="absolute left-3 top-3.5 w-5 h-5 cursor-pointer"
+                          style={{ color: 'var(--primary)' }}
+                          strokeWidth={1.5}
+                          onClick={() => {
+                            const input =
+                              document.getElementById('endDateInput');
+                            input &&
+                              'showPicker' in input &&
+                              (input as HTMLInputElement).showPicker();
+                            input && input.click();
+                          }}
+                        />
+                        <input
+                          id="endDateInput"
+                          type="date"
+                          className="w-full pl-10 px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+                          onMouseDown={(e) => e.preventDefault()}
+                          disabled={form.getFieldValue('isCurrent')}
+                        />
+                      </div>
                     </Form.Item>
                   </div>
 
                   {/* Current Position */}
                   <div className="space-y-2">
-                    <label className="block text-xs text-muted-foreground">Status</label>
+                    <label className="block text-xs text-muted-foreground">
+                      Status
+                    </label>
                     <div className="flex items-center h-12">
-                      <Form.Item name="isCurrent" valuePropName="checked" className="mb-0">
+                      <Form.Item
+                        name="isCurrent"
+                        valuePropName="checked"
+                        className="mb-0"
+                      >
                         <input
                           type="checkbox"
                           className="w-4 h-4 text-primary border-border rounded focus:ring-ring mr-2"
@@ -192,7 +241,9 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
                           }}
                         />
                       </Form.Item>
-                      <span className="text-sm text-foreground">Current Position</span>
+                      <span className="text-sm text-foreground">
+                        Current Position
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -235,15 +286,22 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
           {/* Experience List */}
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-              <Target className="w-5 h-5 mr-2" style={{ color: 'var(--primary)' }} />
+              <Target
+                className="w-5 h-5 mr-2"
+                style={{ color: 'var(--primary)' }}
+              />
               Your Experience ({value.length})
             </h3>
 
             {value.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-border rounded-[var(--radius)]">
                 <Briefcase className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground text-lg">No experience added yet</p>
-                <p className="text-muted-foreground text-sm">Start by adding your first work experience above</p>
+                <p className="text-muted-foreground text-lg">
+                  No experience added yet
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Start by adding your first work experience above
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -261,7 +319,9 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
                           </div>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex items-center space-x-2">
-                              <span className="font-medium">{item.company}</span>
+                              <span className="font-medium">
+                                {item.company}
+                              </span>
                               {item.location && (
                                 <>
                                   <span>•</span>
@@ -275,7 +335,10 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
                             <div className="flex items-center space-x-2 text-xs text-muted-foreground/80">
                               <Calendar className="w-3 h-3" />
                               <span>
-                                {formatDate(item.startDate)} — {item.isCurrent ? 'Present' : formatDate(item.endDate!)}
+                                {formatDate(item.startDate)} —{' '}
+                                {item.isCurrent
+                                  ? 'Present'
+                                  : formatDate(item.endDate!)}
                               </span>
                               {item.isCurrent && (
                                 <span className="px-2 py-1 bg-primary/20 text-primary rounded-full text-xs">
@@ -301,7 +364,6 @@ export default function Experience({ value = [], onChange, onNext, onPrev }: Pro
                       >
                         <DeleteOutlined className="w-4 h-4" />
                       </button>
-                      
                     </div>
                   </div>
                 ))}

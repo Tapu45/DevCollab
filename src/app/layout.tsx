@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { SignupProvider } from "@/context/SignupContext";
 import RouteLayoutWrapper from "@/components/Layout/RootLayoutWrapper";
+import QueryProvider from "../context/QueryProvider"; // <-- Use your QueryProvider
+import NextAuthProvider from "@/context/SessionProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,11 +30,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <SignupProvider>
-            <RouteLayoutWrapper>{children}</RouteLayoutWrapper>
-          </SignupProvider>
-        </AuthProvider>
+        <NextAuthProvider> {/* Use the client provider */}
+          <QueryProvider>
+            <AuthProvider>
+              <SignupProvider>
+                <RouteLayoutWrapper>{children}</RouteLayoutWrapper>
+              </SignupProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

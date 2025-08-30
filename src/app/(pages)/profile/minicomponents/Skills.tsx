@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Form, Input, Select, Rate, Button, List, Space } from 'antd';
 import {
   Plus as PlusOutlined,
@@ -12,6 +12,7 @@ import {
   Calendar,
   Clock,
 } from 'lucide-react';
+import GlassDropdown from '@/components/shared/GlassDropdown';
 
 export type SkillInput = {
   name: string;
@@ -58,6 +59,69 @@ export default function Skills({
   onPrev,
 }: Props) {
   const [form] = Form.useForm();
+  const [skillLevel, setSkillLevel] = useState<number>(
+      form.getFieldValue('skillLevel') || 3,
+    );
+
+     React.useEffect(() => {
+      const current = form.getFieldValue('skillLevel');
+      if (typeof current === 'number') setSkillLevel(current);
+    }, [form]);
+
+  function StarRating({
+    value,
+    onChange,
+    count = 5,
+    className = '',
+    size = 24,
+    color = 'var(--primary)',
+  }: {
+    value: number;
+    onChange: (v: number) => void;
+    count?: number;
+    className?: string;
+    size?: number;
+    color?: string;
+  }) {
+    const [hovered, setHovered] = useState<number | null>(null);
+
+    return (
+      <div
+        className={`flex items-center gap-1 ${className}`}
+        onMouseLeave={() => setHovered(null)}
+      >
+        {[...Array(count)].map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={`Set rating to ${i + 1}`}
+            onClick={() => onChange(i + 1)}
+            onMouseEnter={() => setHovered(i + 1)}
+            className="focus:outline-none bg-transparent"
+            style={{ lineHeight: 0 }}
+          >
+            <svg
+              width={size}
+              height={size}
+              viewBox="0 0 24 24"
+              fill={
+                hovered !== null
+                  ? i < hovered
+                    ? color
+                    : 'rgba(120,120,140,0.2)'
+                  : i < value
+                    ? color
+                    : 'rgba(120,120,140,0.2)'
+              }
+              style={{ transition: 'fill 0.2s' }}
+            >
+              <path d="M12 2.5l3.09 6.26 6.91.54-5 4.73 1.18 6.97L12 17.77l-6.18 3.23L7 14.03l-5-4.73 6.91-.54z" />
+            </svg>
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   function addSkill() {
     const current = form.getFieldsValue();
@@ -66,8 +130,11 @@ export default function Skills({
     const level = current.skillLevel || 3;
     const yearsExp = current.yearsExperience;
     const lastUsed = current.lastUsed;
+    
 
     if (!name) return;
+
+   
 
     const next = [
       ...value,
@@ -83,6 +150,7 @@ export default function Skills({
     form.resetFields();
 
     // Set default values back for the next skill
+     setSkillLevel(3);
     form.setFieldsValue({
       skillCategory: CATEGORIES[0],
       skillLevel: 3,
@@ -108,38 +176,38 @@ export default function Skills({
   }
 
   return (
-    <div className="min-h-screen bg-background py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="bg-background py-0 px-0 sm:px-4 lg:px-6">
+      <div className="max-w-4xl mx-auto">
         {/* Glass morphism container */}
-        <div className="backdrop-blur-xl bg-card/40 border border-border rounded-[var(--radius)] p-8 shadow-[0_0_15px_var(--ring)] hover:shadow-[0_0_30px_var(--ring)] transition-shadow duration-300">
+        <div className="backdrop-blur-xl bg-card/40 border border-border rounded-[var(--radius)] p-6 shadow-[0_0_10px_var(--ring)] hover:shadow-[0_0_18px_var(--ring)] transition-shadow duration-300">
           {/* Header section */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
-              Skills & Expertiseee
+          <div className="mb-6">
+            <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
+              Skills & Expertise
             </h2>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-muted-foreground mt-1 text-sm">
               Showcase your technical skills and proficiency levels
             </p>
           </div>
 
           {/* Add Skill Form */}
-          <div className="mb-8">
+          <div className="mb-6">
             <Form form={form} layout="vertical" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Skill Name */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-foreground">
                     Skill Name *
                   </label>
                   <div className="relative">
                     <Code
-                      className="absolute left-3 top-3.5 w-5 h-5"
+                      className="absolute left-3 top-3 w-5 h-5 pointer-events-none"
                       style={{ color: 'var(--primary)' }}
                       strokeWidth={1.5}
                     />
                     <Form.Item name="skillName" className="mb-0">
                       <input
-                        className="w-full pl-10 pr-4 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground"
+                        className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] bg-card/40 backdrop-blur-xl shadow-[0_0_6px_var(--ring)] text-foreground placeholder-muted-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent transition"
                         placeholder="e.g. React, Python, Docker"
                       />
                     </Form.Item>
@@ -147,7 +215,7 @@ export default function Skills({
                 </div>
 
                 {/* Skill Category */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-foreground">
                     Category
                   </label>
@@ -156,20 +224,25 @@ export default function Skills({
                     initialValue={CATEGORIES[0]}
                     className="mb-0"
                   >
-                    <select className="w-full px-4 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background">
-                      {CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {formatCategory(category)}
-                        </option>
-                      ))}
-                    </select>
+                    <GlassDropdown
+                      options={CATEGORIES.map((cat) => ({
+                        value: cat,
+                        label: formatCategory(cat),
+                      }))}
+                      value={form.getFieldValue('skillCategory')}
+                      onChange={(v) =>
+                        form.setFieldsValue({ skillCategory: v })
+                      }
+                      placeholder="Select category"
+                      icon={Target}
+                    />
                   </Form.Item>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Proficiency Level */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-foreground">
                     Proficiency Level
                   </label>
@@ -179,46 +252,57 @@ export default function Skills({
                     className="mb-0"
                   >
                     <div className="flex items-center space-x-2">
-                      <Rate
+                      <StarRating
+                        value={skillLevel}
+                        onChange={(newValue) => {
+                          setSkillLevel(newValue);
+                          form.setFieldsValue({ skillLevel: newValue });
+                        }}
                         count={5}
-                        className="text-lg"
-                        style={{ color: 'var(--primary)' }}
+                        size={24}
+                        color="var(--primary)"
                       />
                       <span className="text-sm text-muted-foreground ml-2">
-                        Level {form.getFieldValue('skillLevel') || 3}
+                        Level {skillLevel}
                       </span>
                     </div>
                   </Form.Item>
                 </div>
-
                 {/* Years of Experience */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-foreground">
                     Years of Experience
                   </label>
                   <Form.Item name="yearsExperience" className="mb-0">
-                    <select className="w-full px-4 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background">
-                      <option value="">Select experience</option>
-                      {EXPERIENCE_YEARS.map((exp) => (
-                        <option key={exp.value} value={exp.value}>
-                          {exp.label}
-                        </option>
-                      ))}
-                    </select>
+                    <GlassDropdown
+                      options={EXPERIENCE_YEARS}
+                      value={form.getFieldValue('yearsExperience')}
+                      onChange={(v) =>
+                        form.setFieldsValue({ yearsExperience: v })
+                      }
+                      placeholder="Select experience"
+                      icon={Clock}
+                    />
                   </Form.Item>
                 </div>
 
                 {/* Last Used */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-sm font-medium text-foreground">
                     Last Used
                   </label>
-                  <Form.Item name="lastUsed" className="mb-0">
-                    <input
-                      type="date"
-                      className="w-full px-4 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+                  <div className="relative">
+                    <Calendar
+                      className="absolute left-3 top-3 w-5 h-5 pointer-events-none"
+                      style={{ color: 'var(--primary)' }}
                     />
-                  </Form.Item>
+                    <Form.Item name="lastUsed" className="mb-0">
+                      <input
+                        type="date"
+                        className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] bg-card/40 backdrop-blur-xl shadow-[0_0_6px_var(--ring)] text-foreground placeholder-muted-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent transition"
+                      />
+                    </Form.Item>
+                  </div>
                 </div>
               </div>
 
@@ -227,7 +311,7 @@ export default function Skills({
                 <button
                   type="button"
                   onClick={addSkill}
-                  className="px-8 py-3 rounded-[var(--radius-sm)] bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-200 shadow-[0_0_20px_var(--ring)] hover:shadow-[0_0_25px_var(--ring)] flex items-center space-x-2"
+                  className="px-6 py-2 rounded-[var(--radius-sm)] bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-200 shadow-[0_0_12px_var(--ring)] hover:shadow-[0_0_18px_var(--ring)] flex items-center space-x-2 text-sm"
                 >
                   <PlusOutlined className="w-4 h-4" />
                   <span>Add Skill</span>
@@ -237,8 +321,8 @@ export default function Skills({
           </div>
 
           {/* Skills List */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+          <div className="mb-6">
+            <h3 className="text-base font-semibold text-foreground mb-4 flex items-center">
               <Target
                 className="w-5 h-5 mr-2"
                 style={{ color: 'var(--primary)' }}
@@ -247,9 +331,9 @@ export default function Skills({
             </h3>
 
             {value.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-border rounded-[var(--radius)]">
-                <Code className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground text-lg">
+              <div className="text-center py-8 border-2 border-dashed border-border rounded-[var(--radius)]">
+                <Code className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground text-base">
                   No skills added yet
                 </p>
                 <p className="text-muted-foreground text-sm">
@@ -261,16 +345,16 @@ export default function Skills({
                 {value.map((item, i) => (
                   <div
                     key={i}
-                    className="group flex items-center justify-between p-4 border border-border rounded-[var(--radius-sm)] hover:border-primary/50 transition-all duration-200 hover:shadow-sm bg-card/50"
+                    className="group flex items-center justify-between p-3 border border-border rounded-[var(--radius-sm)] hover:border-primary/50 transition-all duration-200 hover:shadow-sm bg-card/50"
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
                         <div className="w-2 h-2 rounded-full bg-primary"></div>
                         <div>
-                          <div className="font-semibold text-foreground">
+                          <div className="font-semibold text-foreground text-sm">
                             {item.name}
                           </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
+                          <div className="text-xs text-muted-foreground space-y-1">
                             <div className="flex items-center space-x-2">
                               <span>{formatCategory(item.category)}</span>
                               <span>•</span>
@@ -328,10 +412,10 @@ export default function Skills({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between items-center pt-6 border-t border-border">
+          <div className="flex justify-end space-x-3 mt-6">
             <button
               onClick={onPrev}
-              className="px-6 py-3 rounded-[var(--radius-sm)] border border-border text-foreground hover:bg-accent transition-colors duration-200 flex items-center space-x-2"
+              className="px-4 py-2 rounded-[var(--radius-sm)] border border-border text-muted-foreground hover:bg-accent transition-colors duration-200 text-sm flex items-center space-x-2"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -339,14 +423,10 @@ export default function Skills({
 
             <button
               onClick={() => {
-                console.log('Next button clicked');
-                console.log('Current skills:', value);
-                console.log('Skills length:', value.length);
-                console.log('onNext function:', onNext);
                 onNext?.();
               }}
               disabled={value.length === 0}
-              className="px-8 py-3 rounded-[var(--radius-sm)] bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-200 shadow-[0_0_20px_var(--ring)] hover:shadow-[0_0_25px_var(--ring)] flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 rounded-[var(--radius-sm)] bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-200 shadow-[0_0_12px_var(--ring)] hover:shadow-[0_0_18px_var(--ring)] flex items-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>Next</span>
               <ArrowRight className="w-4 h-4" />

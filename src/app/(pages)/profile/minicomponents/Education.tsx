@@ -153,28 +153,60 @@ export default function Education({ value = [], onChange, onNext, onPrev }: Prop
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Start Date */}
-                  <div className="space-y-2">
-                    <label className="block text-xs text-muted-foreground">Start Date</label>
-                    <Form.Item name="startDate" className="mb-0">
-                      <input
-                        type="date"
-                        className="w-full px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
-                      />
-                    </Form.Item>
-                  </div>
+                 <div className="space-y-2">
+    <label className="block text-xs text-muted-foreground">Start Date</label>
+    <Form.Item name="startDate" className="mb-0">
+      <div className="relative">
+        <Calendar
+          className="absolute left-3 top-3.5 w-5 h-5 cursor-pointer"
+          style={{ color: 'var(--primary)' }}
+          strokeWidth={1.5}
+          onClick={() => {
+            const input = document.getElementById('eduStartDateInput');
+            if (input && 'showPicker' in input) {
+              (input as HTMLInputElement).showPicker();
+            }
+            input && input.click();
+          }}
+        />
+        <input
+          id="eduStartDateInput"
+          type="date"
+          className="w-full pl-10 px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+          onMouseDown={e => e.preventDefault()}
+        />
+      </div>
+    </Form.Item>
+  </div>
 
-                  {/* End Date */}
-                  <div className="space-y-2">
-                    <label className="block text-xs text-muted-foreground">End Date</label>
-                    <Form.Item name="endDate" className="mb-0">
-                      <input
-                        type="date"
-                        className="w-full px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
-                      />
-                    </Form.Item>
-                  </div>
-                </div>
-              </div>
+  {/* End Date */}
+  <div className="space-y-2">
+    <label className="block text-xs text-muted-foreground">End Date</label>
+    <Form.Item name="endDate" className="mb-0">
+      <div className="relative">
+        <Calendar
+          className="absolute left-3 top-3.5 w-5 h-5 cursor-pointer"
+          style={{ color: 'var(--primary)' }}
+          strokeWidth={1.5}
+          onClick={() => {
+            const input = document.getElementById('eduEndDateInput');
+            if (input && 'showPicker' in input) {
+              (input as HTMLInputElement).showPicker();
+            }
+            input && input.click();
+          }}
+        />
+        <input
+          id="eduEndDateInput"
+          type="date"
+          className="w-full pl-10 px-3 py-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground bg-background"
+          onMouseDown={e => e.preventDefault()}
+        />
+      </div>
+    </Form.Item>
+  </div>
+</div>
+</div>
 
               {/* Grade */}
               <div className="space-y-2">

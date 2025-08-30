@@ -4,25 +4,94 @@ import React, { useState, useEffect } from 'react';
 import { Steps, Progress, Button, notification, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 import Basic, { BasicValues } from './minicomponents/Basic';
 import Skills, { SkillInput } from './minicomponents/Skills';
 import Project, { ProjectInput } from './minicomponents/Project';
 import Experience, { ExperienceInput } from './minicomponents/Experience';
 import Education, { EducationInput } from './minicomponents/Education';
+import Review from './minicomponents/Review';
 
 const { Step } = Steps;
 
-// Local storage keys
-const STORAGE_KEYS = {
-  CURRENT_STEP: 'profile_create_current_step',
-  BASIC_DATA: 'profile_create_basic_data',
-  SKILLS_DATA: 'profile_create_skills_data',
-  PROJECTS_DATA: 'profile_create_projects_data',
-  EXPERIENCES_DATA: 'profile_create_experiences_data',
-  EDUCATIONS_DATA: 'profile_create_educations_data',
-  LAST_SAVED: 'profile_create_last_saved',
-};
+// Query function for progress
+async function fetchProgress(): Promise<{ section?: string }> {
+  const res = await fetch('/api/profile/progress');
+  if (!res.ok) throw new Error('Failed to fetch profile progress');
+  return res.json();
+}
+
+// Mutation function for progress
+async function updateProfileProgress(sectionKey: string) {
+  const res = await fetch('/api/profile/progress', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ section: sectionKey }),
+  });
+  if (!res.ok) throw new Error('Error updating profile progress');
+  return res.json();
+}
+
+// Mutation functions for saving data
+async function saveBasicApi(basic: BasicValues) {
+  const res = await fetch('/api/profile/user', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(basic),
+  });
+  if (!res.ok)
+    throw new Error((await res.json())?.error || 'Failed to save basic info');
+  return res.json();
+}
+
+async function saveSkillsApi(skills: SkillInput[]) {
+  for (const s of skills) {
+    const res = await fetch('/api/profile/skills', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: s.name,
+        category: s.category as any,
+        proficiencyLevel: s.proficiencyLevel,
+      }),
+    });
+    if (!res.ok) throw new Error('Failed to save a skill');
+  }
+}
+
+async function saveProjectsApi(projects: ProjectInput[]) {
+  for (const p of projects) {
+    const res = await fetch('/api/profile/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p),
+    });
+    if (!res.ok) throw new Error('Failed to save a project');
+  }
+}
+
+async function saveExperiencesApi(experiences: ExperienceInput[]) {
+  for (const e of experiences) {
+    const res = await fetch('/api/profile/experience', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(e),
+    });
+    if (!res.ok) throw new Error('Failed to save an experience');
+  }
+}
+
+async function saveEducationsApi(educations: EducationInput[]) {
+  for (const ed of educations) {
+    const res = await fetch('/api/profile/education', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ed),
+    });
+    if (!res.ok) throw new Error('Failed to save an education entry');
+  }
+}
 
 export default function CreateForm() {
   const router = useRouter();
@@ -48,88 +117,45 @@ export default function CreateForm() {
 
   const percent = Math.round(((current + 1) / steps.length) * 100);
 
-  // Load saved data from localStorage on component mount
+  // TanStack Query for progress
+  const { data: progressData, isLoading: progressLoading } = useQuery({
+    queryKey: ['profile', 'progress'],
+    queryFn: fetchProgress,
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  });
+
   useEffect(() => {
-    try {
-      // Load current step
-      const savedStep = localStorage.getItem(STORAGE_KEYS.CURRENT_STEP);
-      if (savedStep !== null) {
-        const stepIndex = parseInt(savedStep);
-        if (stepIndex >= 0 && stepIndex < steps.length) {
-          setCurrent(stepIndex);
-        }
-      }
-
-      // Load form data
-      const savedBasic = localStorage.getItem(STORAGE_KEYS.BASIC_DATA);
-      if (savedBasic) {
-        setBasic(JSON.parse(savedBasic));
-      }
-
-      const savedSkills = localStorage.getItem(STORAGE_KEYS.SKILLS_DATA);
-      if (savedSkills) {
-        setSkills(JSON.parse(savedSkills));
-      }
-
-      const savedProjects = localStorage.getItem(STORAGE_KEYS.PROJECTS_DATA);
-      if (savedProjects) {
-        setProjects(JSON.parse(savedProjects));
-      }
-
-      const savedExperiences = localStorage.getItem(STORAGE_KEYS.EXPERIENCES_DATA);
-      if (savedExperiences) {
-        setExperiences(JSON.parse(savedExperiences));
-      }
-
-      const savedEducations = localStorage.getItem(STORAGE_KEYS.EDUCATIONS_DATA);
-      if (savedEducations) {
-        setEducations(JSON.parse(savedEducations));
-      }
-
-      // Check if data is recent (within last 24 hours)
-      const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
-      if (lastSaved) {
-        const lastSavedTime = new Date(lastSaved).getTime();
-        const now = new Date().getTime();
-        const hoursDiff = (now - lastSavedTime) / (1000 * 60 * 60);
-        
-        if (hoursDiff > 24) {
-          // Clear old data if it's more than 24 hours old
-          clearSavedData();
-        }
-      }
-    } catch (error) {
-      console.error('Error loading saved data:', error);
-      clearSavedData();
+    if (progressData?.section) {
+      const stepIndex = steps.findIndex(s => s.key === progressData.section);
+      if (stepIndex >= 0) setCurrent(stepIndex);
     }
-  }, []);
+  }, [progressData]);
 
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    saveToLocalStorage();
-  }, [basic, skills, projects, experiences, educations, current]);
+  // Mutations
+  const updateProgressMutation = useMutation({
+    mutationFn: updateProfileProgress,
+  });
 
-  // Function to save all data to localStorage
-  const saveToLocalStorage = () => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_STEP, current.toString());
-      localStorage.setItem(STORAGE_KEYS.BASIC_DATA, JSON.stringify(basic));
-      localStorage.setItem(STORAGE_KEYS.SKILLS_DATA, JSON.stringify(skills));
-      localStorage.setItem(STORAGE_KEYS.PROJECTS_DATA, JSON.stringify(projects));
-      localStorage.setItem(STORAGE_KEYS.EXPERIENCES_DATA, JSON.stringify(experiences));
-      localStorage.setItem(STORAGE_KEYS.EDUCATIONS_DATA, JSON.stringify(educations));
-      localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
-    }
-  };
+  const saveBasicMutation = useMutation({
+    mutationFn: saveBasicApi,
+  });
 
-  // Function to clear saved data
-  const clearSavedData = () => {
-    Object.values(STORAGE_KEYS).forEach(key => {
-      localStorage.removeItem(key);
-    });
-  };
+  const saveSkillsMutation = useMutation({
+    mutationFn: saveSkillsApi,
+  });
+
+  const saveProjectsMutation = useMutation({
+    mutationFn: saveProjectsApi,
+  });
+
+  const saveExperiencesMutation = useMutation({
+    mutationFn: saveExperiencesApi,
+  });
+
+  const saveEducationsMutation = useMutation({
+    mutationFn: saveEducationsApi,
+  });
 
   function nextStep() {
     setCurrent((s) => Math.min(s + 1, steps.length - 1));
@@ -138,69 +164,10 @@ export default function CreateForm() {
     setCurrent((s) => Math.max(s - 1, 0));
   }
 
-  async function saveBasic() {
-    const res = await fetch('/api/profile/user', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(basic),
-    });
-    if (!res.ok)
-      throw new Error((await res.json())?.error || 'Failed to save basic info');
-  }
-
-  async function saveSkills() {
-    for (const s of skills) {
-      const res = await fetch('/api/profile/skills', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: s.name,
-          category: s.category as any, // The enum values now match the schema
-          proficiencyLevel: s.proficiencyLevel,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to save a skill');
-    }
-  }
-
-  async function saveProjects() {
-    for (const p of projects) {
-      const res = await fetch('/api/profile/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(p),
-      });
-      if (!res.ok) throw new Error('Failed to save a project');
-    }
-  }
-
-  async function saveExperiences() {
-    for (const e of experiences) {
-      const res = await fetch('/api/profile/experience', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(e),
-      });
-      if (!res.ok) throw new Error('Failed to save an experience');
-    }
-  }
-
-  async function saveEducations() {
-    for (const ed of educations) {
-      const res = await fetch('/api/profile/education', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ed),
-      });
-      if (!res.ok) throw new Error('Failed to save an education entry');
-    }
-  }
-
   async function handleNextFromStep(index: number) {
     setLoading(true);
     try {
       if (index === 0) {
-        // basic validation
         if (!basic.displayName || !basic.bio) {
           notification.error({
             message: 'Please fill required basic info (name & bio).',
@@ -210,7 +177,7 @@ export default function CreateForm() {
           setLoading(false);
           return;
         }
-        await saveBasic();
+        await saveBasicMutation.mutateAsync(basic);
       } else if (index === 1) {
         if (skills.length < 3) {
           notification.error({
@@ -221,7 +188,7 @@ export default function CreateForm() {
           setLoading(false);
           return;
         }
-        await saveSkills();
+        await saveSkillsMutation.mutateAsync(skills);
       } else if (index === 2) {
         if (projects.length < 1) {
           notification.error({
@@ -232,15 +199,15 @@ export default function CreateForm() {
           setLoading(false);
           return;
         }
-        await saveProjects();
+        await saveProjectsMutation.mutateAsync(projects);
       } else if (index === 3) {
-        // optional: save experiences if provided
-        if (experiences.length) await saveExperiences();
+        if (experiences.length) await saveExperiencesMutation.mutateAsync(experiences);
       } else if (index === 4) {
-        if (educations.length) await saveEducations();
+        if (educations.length) await saveEducationsMutation.mutateAsync(educations);
       }
 
-      // proceed
+      await updateProgressMutation.mutateAsync(steps[index + 1]?.key || steps[index].key);
+
       nextStep();
     } catch (err: any) {
       notification.error({
@@ -256,22 +223,19 @@ export default function CreateForm() {
   async function handleFinish() {
     setLoading(true);
     try {
-      // final save of any remaining data (safe to call again)
-      await saveBasic();
-      if (skills.length) await saveSkills();
-      if (projects.length) await saveProjects();
-      if (experiences.length) await saveExperiences();
-      if (educations.length) await saveEducations();
+      await saveBasicMutation.mutateAsync(basic);
+      if (skills.length) await saveSkillsMutation.mutateAsync(skills);
+      if (projects.length) await saveProjectsMutation.mutateAsync(projects);
+      if (experiences.length) await saveExperiencesMutation.mutateAsync(experiences);
+      if (educations.length) await saveEducationsMutation.mutateAsync(educations);
 
-      // Clear saved data after successful completion
-      clearSavedData();
+      await updateProgressMutation.mutateAsync('review');
 
       notification.success({
         message: 'Profile created. Redirecting...',
         placement: 'top',
         className: 'custom-notification',
       });
-      // redirect to profile overview or dashboard
       router.push('/profile');
     } catch (err: any) {
       notification.error({
@@ -330,108 +294,12 @@ export default function CreateForm() {
             onPrev={prevStep}
           />
         );
+
       case 'review':
-        return (
-          <div className="review-section">
-            <h3 className="text-xl font-bold mb-6">Review Your Profile</h3>
-
-            <div className="review-card mb-4 p-4 rounded-md bg-card/50 border border-border">
-              <h4 className="font-semibold mb-2 text-primary">
-                Basic Information
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <span className="text-muted-foreground">Name:</span>
-                  <span className="ml-2 font-medium">
-                    {basic.displayName || 'Not provided'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Location:</span>
-                  <span className="ml-2">
-                    {basic.location || 'Not provided'}
-                  </span>
-                </div>
-                <div className="col-span-1 md:col-span-2">
-                  <span className="text-muted-foreground">Bio:</span>
-                  <p className="mt-1">{basic.bio || 'Not provided'}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="review-card mb-4 p-4 rounded-md bg-card/50 border border-border">
-              <h4 className="font-semibold mb-2 text-primary">
-                Skills ({skills.length})
-              </h4>
-              {skills.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 bg-accent rounded-full text-sm"
-                    >
-                      {skill.name}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No skills added</p>
-              )}
-            </div>
-
-            <div className="review-card mb-4 p-4 rounded-md bg-card/50 border border-border">
-              <h4 className="font-semibold mb-2 text-primary">
-                Projects ({projects.length})
-              </h4>
-              {projects.length > 0 ? (
-                <div className="space-y-2">
-                  {projects.map((project, idx) => (
-                    <div key={idx} className="p-2 rounded bg-background/50">
-                      <div className="font-medium">{project.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {project.description?.substring(0, 100)}...
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No projects added</p>
-              )}
-            </div>
-
-            <div className="flex gap-4 mt-8">
-              <Button
-                onClick={prevStep}
-                className="bg-muted text-foreground font-medium border-none hover:bg-muted/80"
-                style={{
-                  height: 44,
-                  padding: '0 24px',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Back
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleFinish}
-                loading={loading}
-                className="bg-primary text-primary-foreground font-semibold"
-                style={{
-                  height: 44,
-                  padding: '0 28px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Complete Profile
-              </Button>
-            </div>
-          </div>
-        );
-      default:
+    return (
+      <Review />
+    );
+       default:
         return null;
     }
   }
@@ -453,117 +321,101 @@ export default function CreateForm() {
         overflow: 'hidden',
       }}
     >
-      <div className="pt-1 pb-6 px-8 text-center">
-        <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
-          Create your profile
-        </h1>
-        <p className="text-muted-foreground">
-          Complete each section to create your developer profile
-        </p>
-      </div>
-
-      <div className="px-8 pb-8">
-        {/* Sleek steps bar with subtle styling */}
-        <div className="flex items-center justify-between mb-0 bg-card/30 px-6 py-4 rounded-lg border border-border/30">
-          <Steps
-            current={current}
-            labelPlacement="vertical"
-            responsive={false}
-            className="w-full"
-            items={steps.map((s, idx) => ({
-              key: s.key,
-              icon: (
-                <div
-                  className={`w-7 h-7 flex items-center justify-center rounded-full 
-                ${
-                  current === idx
-                    ? 'bg-primary border-none text-primary-foreground'
-                    : current > idx
-                      ? 'bg-primary/20 border-none text-primary'
-                      : 'bg-card border border-border text-muted-foreground'
-                }
-              `}
-                  style={{
-                    boxShadow:
-                      current === idx
-                        ? '0 0 0 2px var(--primary-foreground), 0 0 0 4px var(--primary)'
-                        : 'none',
-                  }}
-                >
-                  <span className="font-semibold text-sm">{idx + 1}</span>
-                </div>
-              ),
-              title: (
-                <span
-                  className={`font-medium text-sm
-                ${
-                  current === idx
-                    ? 'text-primary'
-                    : current > idx
-                      ? 'text-primary/70'
-                      : 'text-muted-foreground'
-                }
-              `}
-                >
-                  {s.title}
-                </span>
-              ),
-            }))}
-          />
-          <div className="w-24 ml-4">
-            <Progress
-              percent={percent}
-              size="small"
-              strokeColor={{
-                '0%': 'var(--primary)',
-                '100%': 'var(--primary)',
-              }}
-              trailColor="var(--muted)"
-              showInfo={false}
-              className="rounded-full"
+      <div className="px-1 pb-8">
+        {/* Move steps bar to the left side */}
+        <div className="flex flex-row gap-8">
+          {/* Steps bar on the left */}
+          <div className="flex flex-col items-center min-w-[180px] pt-8">
+            <Steps
+              direction="vertical"
+              current={current}
+              labelPlacement="vertical"
+              responsive={false}
+              className="w-full"
+              items={steps.map((s, idx) => ({
+                key: s.key,
+                icon: (
+                  <div
+                    className={`w-7 h-7 flex items-center justify-center rounded-full 
+                  ${
+                    current === idx
+                      ? 'bg-primary border-none text-primary-foreground'
+                      : current > idx
+                        ? 'bg-primary/20 border-none text-primary'
+                        : 'bg-card border border-border text-muted-foreground'
+                  }
+                `}
+                    style={{
+                      boxShadow:
+                        current === idx
+                          ? '0 0 0 2px var(--primary-foreground), 0 0 0 4px var(--primary)'
+                          : 'none',
+                    }}
+                  >
+                    <span className="font-semibold text-sm">{idx + 1}</span>
+                  </div>
+                ),
+                title: (
+                  <span
+                    className={`font-medium text-sm
+                  ${
+                    current === idx
+                      ? 'text-primary'
+                      : current > idx
+                        ? 'text-primary/70'
+                        : 'text-muted-foreground'
+                  }
+                `}
+                  >
+                    {s.title}
+                  </span>
+                ),
+              }))}
             />
+          
           </div>
-        </div>
-
-        {/* Rest of the content remains the same */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              background: 'var(--background)',
-              color: 'var(--foreground)',
-              padding: '28px 0 0 0',
-              borderRadius: 0,
-              minHeight: 350,
-              boxShadow: 'none',
-              border: 'none',
-            }}
-          >
-            {loading ? (
-              <div
+          {/* Form content on the right */}
+          <div className="flex-1">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
                 style={{
-                  textAlign: 'center',
-                  padding: '60px 0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '16px',
+                  background: 'var(--background)',
+                  color: 'var(--foreground)',
+                  padding: '28px 0 0 0',
+                  borderRadius: 0,
+                  minHeight: 350,
+                  boxShadow: 'none',
+                  border: 'none',
                 }}
               >
-                <Spin size="large" />
-                <p className="text-muted-foreground mt-4">
-                  Saving your information...
-                </p>
-              </div>
-            ) : (
-              renderCurrentStep()
-            )}
-          </motion.div>
-        </AnimatePresence>
+                {loading ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '60px 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '16px',
+                    }}
+                  >
+                    <Spin size="large" />
+                    <p className="text-muted-foreground mt-4">
+                      Saving your information...
+                    </p>
+                  </div>
+                ) : (
+                  renderCurrentStep()
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     </motion.div>
   );

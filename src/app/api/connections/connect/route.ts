@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
+import { validateConnectionRequest } from '@/lib/ValidateConnect';
+import { ConnectionNotificationService } from '@/services/ConnectionNotificationService';
 
 enum ConnectionStatus {
   PENDING = 'PENDING',
@@ -26,6 +28,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid receiver' }, { status: 400 });
   }
 
+  const allowed = await validateConnectionRequest(session.user.id, receiverId);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Connection request not allowed by receiver privacy settings' }, { status: 403 });
+  }
+
   // Prevent duplicate pending requests
   const existing = await prisma.connection.findFirst({
     where: {
@@ -47,6 +54,12 @@ export async function POST(req: NextRequest) {
       message,
     },
   });
+
+  await ConnectionNotificationService.notifyConnectionRequest(
+    session.user.id,
+    receiverId,
+    message
+  );
 
   return NextResponse.json({ success: true, connection });
 }
@@ -118,6 +131,18 @@ export async function PUT(req: NextRequest) {
     where: { id: connectionId },
     data: { status: response },
   });
+
+  if (response === 'ACCEPTED') {
+    await ConnectionNotificationService.notifyConnectionAccepted(
+      session.user.id,
+      connection.senderId
+    );
+  } else if (response === 'DECLINED') {
+    await ConnectionNotificationService.notifyConnectionDeclined(
+      session.user.id,
+      connection.senderId
+    );
+  }
 
   return NextResponse.json({ success: true, connection: updated });
 }

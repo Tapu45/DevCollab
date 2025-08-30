@@ -84,6 +84,10 @@ export default function ChoosePlanPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to choose plan');
 
       // If payment is required, open Razorpay checkout
+      const selectedPlanData = plans.find(p => p.id === selectedPlan);
+      const isFreePlan = selectedPlanData?.price === '0';
+
+      // If payment is required, open Razorpay checkout
       if (data.paymentRequired && data.order) {
         const options = {
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
@@ -104,7 +108,7 @@ export default function ChoosePlanPage() {
                 userId,
               }),
             });
-            router.push('/auth/welcome'); // <--- add this
+            router.push('/auth/welcome');
           },
           prefill: { email: email || '' },
           theme: { color: '#3399cc' },
@@ -115,6 +119,13 @@ export default function ChoosePlanPage() {
         setSubmitting(false);
         return;
       }
+
+      // If it's a free plan or no payment required, redirect directly to welcome page
+      if (isFreePlan || !data.paymentRequired) {
+        router.push('/auth/welcome');
+        return;
+      }
+
     } catch (err: any) {
       setError(err.message || 'Error submitting plan');
     } finally {
