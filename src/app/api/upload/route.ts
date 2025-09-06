@@ -21,7 +21,38 @@ function uploadBufferToCloudinary(buffer: Buffer, options = {}): Promise<any> {
   });
 }
 
-// Upload single file
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload a single file to Cloudinary
+ *     tags: [Upload]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The file to upload
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { type: object }
+ *       400:
+ *         description: No file uploaded
+ *       500:
+ *         description: Upload error
+ */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -42,7 +73,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Upload multiple files
+/**
+ * @swagger
+ * /api/upload:
+ *   put:
+ *     summary: Upload multiple files to Cloudinary
+ *     tags: [Upload]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Array of files to upload
+ *     responses:
+ *       200:
+ *         description: Files uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 files: { type: array, items: { type: object } }
+ *       400:
+ *         description: No files provided
+ *       500:
+ *         description: Upload error
+ */
 export async function PUT(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -66,7 +130,28 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// Delete file
+/**
+ * @swagger
+ * /api/upload:
+ *   delete:
+ *     summary: Delete a file from Cloudinary
+ *     tags: [Upload]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               public_id: { type: string, description: Public ID of the file to delete }
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       400:
+ *         description: No public_id provided
+ *       500:
+ *         description: Deletion error
+ */
 export async function DELETE(req: NextRequest) {
   try {
     const { public_id } = await req.json();

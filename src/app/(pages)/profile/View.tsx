@@ -28,6 +28,7 @@ import { ProfileAchievements } from './minicomponents/shared/ProfileAchievements
 import { ProfileEvents } from './minicomponents/shared/ProfileEvents';
 import { ProfileForum } from './minicomponents/shared/ProfileForum';
 import { ProfileEndorsements } from './minicomponents/shared/ProfileEndorsements';
+import { ProfileShare } from './minicomponents/shared/ProfileShare';
 
 
 async function fetchFullProfile(userId: string): Promise<FullProfile | null> {
@@ -215,6 +216,16 @@ function ProfileView() {
                     <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
                       {user?.displayName || '—'}
                     </h1>
+                    {user?.username && (
+                      <p className="text-sm text-muted-foreground mb-1">
+                        @{user.username}
+                      </p>
+                    )}
+                    {(user?.firstName || user?.lastName) && (
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {user.firstName} {user.lastName}
+                      </p>
+                    )}
                     {user?.headline && (
                       <p className="text-base text-muted-foreground">
                         {user.headline}
@@ -223,14 +234,7 @@ function ProfileView() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-border/50 hover:bg-accent/10 px-2 py-1"
-                    >
-                      <Share2 className="w-4 h-4 mr-1" />
-                      Share
-                    </Button>
+                    <ProfileShare />
                     <Button
                       onClick={() => router.push('/profile/create')}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-1"
@@ -258,6 +262,12 @@ function ProfileView() {
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       <span>{user.timezone}</span>
+                    </div>
+                  )}
+                  {user?.showEmail && user?.email && (
+                    <div className="flex items-center gap-1">
+                      <Mail className="w-4 h-4" />
+                      <span>{user.email}</span>
                     </div>
                   )}
                 </div>

@@ -106,6 +106,10 @@ type ReceivedEndorsement = {
 export type FullProfile = {
     id?: string;
     displayName?: string;
+    username?: string; 
+    firstName?: string; 
+    lastName?: string; 
+    email?: string;
     headline?: string;
     bio?: string;
     location?: string;
@@ -115,6 +119,7 @@ export type FullProfile = {
     linkedinUrl?: string;
     avatarUrl?: string;
     availability?: string;
+    showEmail?: boolean;
     skills?: Skill[];
     ownedProjects?: Project[];
     experiences?: Experience[];
