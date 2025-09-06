@@ -72,14 +72,14 @@ export default function NotificationSettingsPage() {
   const { data: notificationPreferences, isLoading } = useQuery({
     queryKey: ['notifications', 'preferences'],
     queryFn: fetchNotificationPreferences,
-    onSuccess: (data) => {
-      setPreferences(data);
-      if (data.length > 0) {
-        setQuietHoursStart(data[0].quietHoursStart || '22:00');
-        setQuietHoursEnd(data[0].quietHoursEnd || '08:00');
-        setTimezone(data[0].timezone || 'UTC');
-      }
-    },
+    // onSuccess: (data: NotificationPreferences[]) => {
+    //   setPreferences(data);
+    //   if (data.length > 0) {
+    //     setQuietHoursStart(data[0].quietHoursStart || '22:00');
+    //     setQuietHoursEnd(data[0].quietHoursEnd || '08:00');
+    //     setTimezone(data[0].timezone || 'UTC');
+    //   }
+    // },
   });
 
   // Mutations
@@ -203,7 +203,7 @@ export default function NotificationSettingsPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
                 <Select value={timezone} onValueChange={setTimezone}>
@@ -212,10 +212,18 @@ export default function NotificationSettingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTC">UTC</SelectItem>
-                    <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                    <SelectItem value="America/Chicago">Central Time</SelectItem>
-                    <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                    <SelectItem value="America/New_York">
+                      Eastern Time
+                    </SelectItem>
+                    <SelectItem value="America/Chicago">
+                      Central Time
+                    </SelectItem>
+                    <SelectItem value="America/Denver">
+                      Mountain Time
+                    </SelectItem>
+                    <SelectItem value="America/Los_Angeles">
+                      Pacific Time
+                    </SelectItem>
                     <SelectItem value="Europe/London">London</SelectItem>
                     <SelectItem value="Europe/Paris">Paris</SelectItem>
                     <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
@@ -239,10 +247,14 @@ export default function NotificationSettingsPage() {
               {preferences.map((pref) => (
                 <div key={pref.category} className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{getCategoryIcon(pref.category)}</span>
-                    <h3 className="text-lg font-semibold">{getCategoryName(pref.category)}</h3>
+                    <span className="text-2xl">
+                      {getCategoryIcon(pref.category)}
+                    </span>
+                    <h3 className="text-lg font-semibold">
+                      {getCategoryName(pref.category)}
+                    </h3>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -251,21 +263,95 @@ export default function NotificationSettingsPage() {
                       </div>
                       <Switch
                         checked={pref.inAppEnabled}
-                        onCheckedChange={(checked) => handlePreferenceChange(pref.category, 'inAppEnabled', checked)}
+                        onCheckedChange={(checked) =>
+                          handlePreferenceChange(
+                            pref.category,
+                            'inAppEnabled',
+                            checked,
+                          )
+                        }
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        <Label>Email Notifications</Label>
+                        <Smartphone className="w-4 h-4" />
+                        <Label>Push Notifications</Label>
                       </div>
                       <Switch
-                        checked={pref.emailEnabled}
-                        onCheckedChange={(checked) => handlePreferenceChange(pref.category, 'emailEnabled', checked)}
+                        checked={pref.pushEnabled}
+                        onCheckedChange={(checked) =>
+                          handlePreferenceChange(
+                            pref.category,
+                            'pushEnabled',
+                            checked,
+                          )
+                        }
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Sma
+                        <Smartphone className="w-4 h-4" />
+                        <Label>SMS Notifications</Label>
+                      </div>
+                      <Switch
+                        checked={pref.smsEnabled}
+                        onCheckedChange={(checked) =>
+                          handlePreferenceChange(
+                            pref.category,
+                            'smsEnabled',
+                            checked,
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Digest Frequency</Label>
+                    <Select
+                      value={pref.digestFrequency}
+                      onValueChange={(value) =>
+                        handlePreferenceChange(
+                          pref.category,
+                          'digestFrequency',
+                          value,
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="IMMEDIATE">Immediate</SelectItem>
+                        <SelectItem value="HOURLY">Hourly</SelectItem>
+                        <SelectItem value="DAILY">Daily</SelectItem>
+                        <SelectItem value="WEEKLY">Weekly</SelectItem>
+                        <SelectItem value="NEVER">Never</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSave}
+              disabled={updatePreferencesMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {updatePreferencesMutation.isPending
+                ? 'Saving...'
+                : 'Save Preferences'}
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
