@@ -517,253 +517,256 @@ function ProfileView() {
         >
           {/* Left Column - Main Content */}
           <div className="lg:col-span-3 space-y-4">
-          {/* Summary Section */}
-<motion.div variants={itemVariants}>
-  <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        <Star className="w-4 h-4 text-primary" />
-        Summary
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p className="text-muted-foreground text-sm mb-2">
-        {user?.bio || 'No summary provided.'}
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <div className="p-2 rounded-lg bg-muted/20 border border-border/20">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Code className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground text-sm">
-                Projects
-              </h4>
-              <p className="text-lg font-bold text-primary">
-                {projectsCount}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Public projects linked to your profile
-          </p>
-        </div>
-        <div className="p-2 rounded-lg bg-muted/20 border border-border/20">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 bg-accent/10 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-accent-foreground" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground text-sm">
-                Match Score
-              </h4>
-              <p className="text-lg font-bold text-accent-foreground">
-                —
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Match score & recent activity
-          </p>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-</motion.div>
-
-{/* Experience Section */}
-<motion.div variants={itemVariants}>
-  <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        <Briefcase className="w-4 h-4 text-primary" />
-        Professional Experience
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      {sortedExperiences.length === 0 ? (
-        <p className="text-muted-foreground text-center py-3 text-sm">
-          No experience added yet
-        </p>
-      ) : (
-        <div className="space-y-1">
-          {sortedExperiences.map((ex, idx) => (
-            <motion.div
-              key={ex.id || `${ex.title}-${ex.company}`}
-              variants={cardHoverVariants}
-              whileHover="hover"
-              className="p-2 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 transition-all duration-200"
-            >
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-foreground text-sm">
-                    {ex.title}
-                  </h4>
-                  <p className="text-primary font-medium text-xs">
-                    {ex.company}
+            {/* Summary Section */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Star className="w-4 h-4 text-primary" />
+                    Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    {user?.bio || 'No summary provided.'}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {formatDate(ex.startDate)} —{' '}
-                      {ex.isCurrent ? 'Present' : formatDate(ex.endDate)}
-                    </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="p-2 rounded-lg bg-muted/20 border border-border/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <Code className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground text-sm">
+                            Projects
+                          </h4>
+                          <p className="text-lg font-bold text-primary">
+                            {projectsCount}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Public projects linked to your profile
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-muted/20 border border-border/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 bg-accent/10 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4 text-accent-foreground" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground text-sm">
+                            Match Score
+                          </h4>
+                          <p className="text-lg font-bold text-accent-foreground">
+                            —
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Match score & recent activity
+                      </p>
+                    </div>
                   </div>
-                  {ex.responsibilities && (
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {ex.responsibilities}
-                    </p>
-                  )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </motion.div>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</motion.div>
 
-{/* Education Section */}
-<motion.div variants={itemVariants}>
-  <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        <GraduationCap className="w-4 h-4 text-primary" />
-        Education
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      {sortedEducations.length === 0 ? (
-        <p className="text-muted-foreground text-center py-3 text-sm">
-          No education entries yet
-        </p>
-      ) : (
-        <div className="space-y-1">
-          {sortedEducations.map((ed, idx) => (
-            <motion.div
-              key={ed.id || ed.institution}
-              variants={cardHoverVariants}
-              whileHover="hover"
-              className="p-2 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 transition-all duration-200"
-            >
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BookOpen className="w-4 h-4 text-accent-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-foreground text-sm">
-                    {ed.institution}
-                  </h4>
-                  {ed.degree && (
-                    <p className="text-accent-foreground font-medium text-xs">
-                      {ed.degree}
+            {/* Experience Section */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Briefcase className="w-4 h-4 text-primary" />
+                    Professional Experience
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {sortedExperiences.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-3 text-sm">
+                      No experience added yet
                     </p>
-                  )}
-                  {ed.fieldOfStudy && (
-                    <p className="text-foreground text-xs">
-                      {ed.fieldOfStudy}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {formatDate(ed.startDate)} — {formatDate(ed.endDate)}
-                    </span>
-                  </div>
-                  {ed.description && (
-                    <p className="text-muted-foreground mt-1 text-xs">
-                      {ed.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</motion.div>
-
-{/* Projects Section */}
-<motion.div variants={itemVariants}>
-  <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        <Code className="w-4 h-4 text-primary" />
-        Featured Projects
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      {projects.length === 0 ? (
-        <p className="text-muted-foreground text-center py-3 text-sm">
-          No projects added yet
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {projects.map((p) => (
-            <motion.div
-              key={p.id || p.title}
-              variants={cardHoverVariants}
-              whileHover="hover"
-              className="p-2 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 transition-all duration-200"
-            >
-              <div className="flex items-start gap-2">
-                <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Code className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className="font-semibold text-foreground text-sm">
-                      {p.title}
-                    </h4>
-                    {p.githubUrl && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="h-6 px-1"
-                      >
-                        <a
-                          href={p.githubUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                  ) : (
+                    <div className="space-y-1">
+                      {sortedExperiences.map((ex, idx) => (
+                        <motion.div
+                          key={ex.id || `${ex.title}-${ex.company}`}
+                          variants={cardHoverVariants}
+                          whileHover="hover"
+                          className="p-2 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 transition-all duration-200"
                         >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground text-xs line-clamp-3 mb-1">
-                    {p.shortDesc}
-                  </p>
-                  {p.tech && (
-                    <div className="flex flex-wrap gap-1">
-                      {p.tech.map((t) => (
-                        <Badge
-                          key={t}
-                          variant="secondary"
-                          className="text-[10px] px-1 py-0"
-                        >
-                          {t}
-                        </Badge>
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-foreground text-sm">
+                                {ex.title}
+                              </h4>
+                              <p className="text-primary font-medium text-xs">
+                                {ex.company}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>
+                                  {formatDate(ex.startDate)} —{' '}
+                                  {ex.isCurrent
+                                    ? 'Present'
+                                    : formatDate(ex.endDate)}
+                                </span>
+                              </div>
+                              {ex.responsibilities && (
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                  {ex.responsibilities}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
                       ))}
                     </div>
                   )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </motion.div>
-          ))}
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</motion.div>
+
+            {/* Education Section */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    Education
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {sortedEducations.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-3 text-sm">
+                      No education entries yet
+                    </p>
+                  ) : (
+                    <div className="space-y-1">
+                      {sortedEducations.map((ed, idx) => (
+                        <motion.div
+                          key={ed.id || ed.institution}
+                          variants={cardHoverVariants}
+                          whileHover="hover"
+                          className="p-2 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 transition-all duration-200"
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-4 h-4 text-accent-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-foreground text-sm">
+                                {ed.institution}
+                              </h4>
+                              {ed.degree && (
+                                <p className="text-accent-foreground font-medium text-xs">
+                                  {ed.degree}
+                                </p>
+                              )}
+                              {ed.fieldOfStudy && (
+                                <p className="text-foreground text-xs">
+                                  {ed.fieldOfStudy}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>
+                                  {formatDate(ed.startDate)} —{' '}
+                                  {formatDate(ed.endDate)}
+                                </span>
+                              </div>
+                              {ed.description && (
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                  {ed.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Projects Section */}
+            <motion.div variants={itemVariants}>
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-all duration-300 p-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Code className="w-4 h-4 text-primary" />
+                    Featured Projects
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {projects.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-3 text-sm">
+                      No projects added yet
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {projects.map((p) => (
+                        <motion.div
+                          key={p.id || p.title}
+                          variants={cardHoverVariants}
+                          whileHover="hover"
+                          className="p-2 rounded-lg bg-muted/20 border border-border/20 hover:border-primary/30 transition-all duration-200"
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Code className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <h4 className="font-semibold text-foreground text-sm">
+                                  {p.title}
+                                </h4>
+                                {p.githubUrl && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="h-6 px-1"
+                                  >
+                                    <a
+                                      href={p.githubUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </Button>
+                                )}
+                              </div>
+                              <p className="text-muted-foreground text-xs line-clamp-3 mb-1">
+                                {p.shortDesc}
+                              </p>
+                              {p.tech && (
+                                <div className="flex flex-wrap gap-1">
+                                  {p.tech.map((t) => (
+                                    <Badge
+                                      key={t}
+                                      variant="secondary"
+                                      className="text-[10px] px-1 py-0"
+                                    >
+                                      {t}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           {/* Right Column - Sidebar */}

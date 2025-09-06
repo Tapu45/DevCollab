@@ -12,7 +12,8 @@
     "plan:seed": "node --loader ts-node/esm src/lib/seed/plan.ts",
     "db:clear": "node --loader ts-node/esm src/lib/seed/clearDb.ts",
     "import:leetcode": "node src/scripts/import-leetcode-questions.js",
-    "template:seed": "node --loader ts-node/esm src/lib/seed/notificationTemplates.ts"
+    "template:seed": "node --loader ts-node/esm src/lib/seed/notificationTemplates.ts",
+    "user:seed": "node --loader ts-node/esm prisma/seed/Userseed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -88,6 +89,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/antd": "^1.0.4",
+    "@types/lodash": "^4.17.20",
     "@types/next-auth": "^3.15.0",
     "@types/node": "^20",
     "@types/node-cache": "^4.2.5",

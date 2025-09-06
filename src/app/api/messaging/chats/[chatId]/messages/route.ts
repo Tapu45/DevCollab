@@ -5,8 +5,12 @@ import { MessagingService } from '@/services/MessagingService';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { chatId: string } }
+  context: { params: { chatId: string } }
 ) {
+  const { params } = context;
+  const awaitedParams = await params;
+  const chatId = awaitedParams.chatId;
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,7 +22,7 @@ export async function GET(
   const before = searchParams.get('before');
 
   try {
-    const messages = await MessagingService.getChatMessages(params.chatId, session.user.id, {
+    const messages = await MessagingService.getChatMessages(chatId, session.user.id, {
       limit,
       offset,
       before: before === null ? undefined : before,
@@ -32,8 +36,12 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { chatId: string } }
+  context: { params: { chatId: string } }
 ) {
+  const { params } = context;
+  const awaitedParams = await params;
+  const chatId = awaitedParams.chatId;
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,7 +51,7 @@ export async function POST(
     const data = await req.json();
     const message = await MessagingService.sendMessage({
       ...data,
-      chatId: params.chatId,
+      chatId,
       senderId: session.user.id,
     });
 

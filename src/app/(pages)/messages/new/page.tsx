@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 // Types
 interface User {
@@ -57,35 +58,7 @@ const fetchProjects = async (): Promise<Project[]> => {
   return response.json();
 };
 
-const createDirectChat = async (userId: string) => {
-  const response = await fetch('/api/messages/chats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'DIRECT', participantId: userId }),
-  });
-  if (!response.ok) throw new Error('Failed to create chat');
-  return response.json();
-};
 
-const createGroupChat = async (name: string, participantIds: string[]) => {
-  const response = await fetch('/api/messages/chats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'GROUP', name, participantIds }),
-  });
-  if (!response.ok) throw new Error('Failed to create group chat');
-  return response.json();
-};
-
-const createProjectChat = async (projectId: string) => {
-  const response = await fetch('/api/messages/chats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'PROJECT', projectId }),
-  });
-  if (!response.ok) throw new Error('Failed to create project chat');
-  return response.json();
-};
 
 export default function NewMessagePage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +68,49 @@ export default function NewMessagePage() {
   
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const { user } = useAuth();
+
+const createDirectChat = async (userId: string) => {
+  const response = await fetch('/api/messaging/chats', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      type: 'DIRECT', 
+      participantIds: [userId]  // Only the other user (exclude current user)
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to create chat');
+  return response.json();
+};
+
+const createGroupChat = async (name: string, participantIds: string[]) => {
+  const response = await fetch('/api/messaging/chats', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      type: 'GROUP', 
+      name, 
+      participantIds  // Selected users (exclude current user)
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to create group chat');
+  return response.json();
+};
+
+const createProjectChat = async (projectId: string) => {
+  const response = await fetch('/api/messaging/chats', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      type: 'PROJECT', 
+      projectId, 
+      participantIds: []  // Empty (service can fetch from project)
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to create project chat');
+  return response.json();
+};
 
   // Queries
   const { data: connections = [], isLoading: loadingConnections } = useQuery({
@@ -109,38 +125,42 @@ export default function NewMessagePage() {
 
   // Mutations
   const createDirectChatMutation = useMutation({
-    mutationFn: createDirectChat,
-    onSuccess: (data) => {
-      router.push(`/messages?chat=${data.chatId}`);
-      toast.success('Chat created successfully');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create chat');
-    },
-  });
+  mutationFn: createDirectChat,
+  onSuccess: (data) => {
+    // Map chat.id to chatId for consistency
+    const chatId = data.chatId || data.chat?.id;
+   router.push(`/messages/${chatId}`);
+    toast.success('Chat created successfully');
+  },
+  onError: (error) => {
+    toast.error(error.message || 'Failed to create chat');
+  },
+});
 
-  const createGroupChatMutation = useMutation({
-    mutationFn: ({ name, participantIds }: { name: string; participantIds: string[] }) =>
-      createGroupChat(name, participantIds),
-    onSuccess: (data) => {
-      router.push(`/messages?chat=${data.chatId}`);
-      toast.success('Group chat created successfully');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create group chat');
-    },
-  });
+const createGroupChatMutation = useMutation({
+  mutationFn: ({ name, participantIds }: { name: string; participantIds: string[] }) =>
+    createGroupChat(name, participantIds),
+  onSuccess: (data) => {
+    const chatId = data.chatId || data.chat?.id;
+    router.push(`/messages?chat=${chatId}`);
+    toast.success('Group chat created successfully');
+  },
+  onError: (error) => {
+    toast.error(error.message || 'Failed to create group chat');
+  },
+});
 
-  const createProjectChatMutation = useMutation({
-    mutationFn: createProjectChat,
-    onSuccess: (data) => {
-      router.push(`/messages?chat=${data.chatId}`);
-      toast.success('Project chat created successfully');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create project chat');
-    },
-  });
+const createProjectChatMutation = useMutation({
+  mutationFn: createProjectChat,
+  onSuccess: (data) => {
+    const chatId = data.chatId || data.chat?.id;
+    router.push(`/messages?chat=${chatId}`);
+    toast.success('Project chat created successfully');
+  },
+  onError: (error) => {
+    toast.error(error.message || 'Failed to create project chat');
+  },
+});
 
   // Handlers
   const handleUserSelect = (userId: string) => {
@@ -168,9 +188,9 @@ export default function NewMessagePage() {
   };
 
   const filteredConnections = connections.filter(user =>
-    user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  (user.displayName && user.displayName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+  (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
+);
 
   const filteredProjects = projects.filter(project =>
     project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

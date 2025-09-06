@@ -99,6 +99,62 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent });
   }
 
+  if (action === 'accepted') {
+    // Accepted connections (both sent and received)
+    const acceptedConnections = await prisma.connection.findMany({
+      where: {
+        OR: [
+          { senderId: session.user.id },
+          { receiverId: session.user.id }
+        ],
+        status: ConnectionStatus.ACCEPTED,
+      },
+      include: {
+        sender: { select: { id: true, username: true, profilePictureUrl: true, displayName: true } },
+        receiver: { select: { id: true, username: true, profilePictureUrl: true, displayName: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Map to array of "other user" objects
+    const accepted = acceptedConnections.map(conn => {
+      // If current user is sender, return receiver; else return sender
+      return conn.senderId === session.user.id ? conn.receiver : conn.sender;
+    });
+
+    return NextResponse.json({ accepted });
+  }
+
+  if (action === 'connected') {
+    // Find all accepted connections where the user is either sender or receiver
+    const connections = await prisma.connection.findMany({
+      where: {
+        status: ConnectionStatus.ACCEPTED,
+        OR: [
+          { senderId: session.user.id },
+          { receiverId: session.user.id }
+        ]
+      },
+      include: {
+        sender: { select: { id: true, username: true, profilePictureUrl: true, displayName: true } },
+        receiver: { select: { id: true, username: true, profilePictureUrl: true, displayName: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Map to array of { user, connectedSince }
+    const connected = connections.map(conn => {
+      const isSender = conn.senderId === session.user.id;
+      const user = isSender ? conn.receiver : conn.sender;
+      return {
+        ...user,
+        connectedSince: conn.createdAt
+      };
+    });
+
+    return NextResponse.json({ connected });
+  }
+
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 }
 

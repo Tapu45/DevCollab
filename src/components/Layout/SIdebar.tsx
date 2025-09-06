@@ -45,7 +45,7 @@ const mainNavItems: NavItem[] = [
   {
     id: 'discover',
     label: 'Discover',
-    href: '/discover',
+    href: '/collaborate',
     Icon: MagnifyingGlass,
   },
   {
@@ -55,7 +55,7 @@ const mainNavItems: NavItem[] = [
     Icon: ChatDots,
     badge: 3,
   },
-  { id: 'profile', label: 'Collaborate', href: '/collaborate', Icon: User },
+  { id: 'profile', label: 'My Network', href: '/my-network', Icon: User },
   { id: 'settings', label: 'Settings', href: '/settings', Icon: Gear },
 ];
 
@@ -152,8 +152,6 @@ export default function SIdebar() {
           />
         </button>
       </div>
-
-    
 
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-auto">

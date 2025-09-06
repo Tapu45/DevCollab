@@ -28,7 +28,7 @@ interface SuggestedUser {
     displayName: string;
     firstName: string;
     lastName: string;
-    profileImage: string | null;
+    profilePictureUrl?: string | null;
     location: string | null;
     bio: string | null;
     skills: Array<{
@@ -237,7 +237,10 @@ export default function DeveloperSuggestions() {
                       >
                         <Avatar className="h-16 w-16 ring-4 ring-background shadow-lg">
                           <AvatarImage
-                            src={user.profile?.profileImage || ''}
+                            src={
+                              user.profile?.profilePictureUrl ||               
+                              ''
+                            }
                             alt={user.profile?.displayName || ''}
                           />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">

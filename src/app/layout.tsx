@@ -4,8 +4,10 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { SignupProvider } from "@/context/SignupContext";
 import RouteLayoutWrapper from "@/components/Layout/RootLayoutWrapper";
-import QueryProvider from "../context/QueryProvider"; // <-- Use your QueryProvider
+import QueryProvider from "../context/QueryProvider";
 import NextAuthProvider from "@/context/SessionProvider";
+import { RazorpayScript } from "@/lib/RazorpayScript";
+import { PageProvider } from "@/context/PageContext"; // Add import
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,11 +32,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <NextAuthProvider> {/* Use the client provider */}
+        <NextAuthProvider>
           <QueryProvider>
             <AuthProvider>
               <SignupProvider>
-                <RouteLayoutWrapper>{children}</RouteLayoutWrapper>
+                <PageProvider> {/* Add PageProvider here */}
+                  <RouteLayoutWrapper>{children}</RouteLayoutWrapper>
+                  <RazorpayScript />
+                </PageProvider>
               </SignupProvider>
             </AuthProvider>
           </QueryProvider>

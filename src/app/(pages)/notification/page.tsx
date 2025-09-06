@@ -85,7 +85,7 @@ const fetchNotifications = async (filters: NotificationFilters = {}): Promise<{
   if (filters.isRead !== undefined) params.append('unreadOnly', (!filters.isRead).toString());
   if (filters.search) params.append('search', filters.search);
 
-  const response = await fetch(`/api/notifications?${params.toString()}`);
+  const response = await fetch(`/api/notification?${params.toString()}`);
   if (!response.ok) throw new Error('Failed to fetch notifications');
   return response.json();
 };

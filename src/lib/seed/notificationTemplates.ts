@@ -20,6 +20,7 @@ const templates = [
     priority: NotificationPriority.NORMAL,
     category: NotificationCategory.CONNECTION,
   },
+  
   // ... more templates
 ];
 

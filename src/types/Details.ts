@@ -33,7 +33,7 @@ export interface Project {
   shortDesc: string;
   status: string;
   visibility: string;
-  techStack: string;
+  techStack: string[];
   categories: string;
   tags: string;
   difficultyLevel: string;

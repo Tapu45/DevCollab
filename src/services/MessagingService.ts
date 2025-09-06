@@ -116,7 +116,7 @@ export class MessagingService {
     });
 
     // Send notifications to participants
-    await this.notifyChatCreated(chat, creatorId);
+    // await this.notifyChatCreated(chat, creatorId);
 
     return chat;
   }
@@ -695,5 +695,39 @@ export class MessagingService {
       select: { displayName: true, username: true },
     });
     return user?.displayName || user?.username || 'Unknown User';
+  }
+
+
+   static async getChatById(chatId: string): Promise<any> {
+    return prisma.chat.findUnique({
+      where: { id: chatId },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                profilePictureUrl: true,
+              },
+            },
+          },
+        },
+        messages: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 }
