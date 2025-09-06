@@ -4,25 +4,35 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import GradientBlinds from '../../Animations/GradientBlinds';
+import LiquidEther from '@/components/Animations/Liquid-Ether';
 
 export default function HeroSection() {
   return (
     <header className="relative w-full flex flex-col items-center justify-center min-h-[130vh] py-30 overflow-hidden mb-8">
       {/* Animated Background - needs to receive pointer events */}
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-auto">
-        <GradientBlinds
-          gradientColors={['#FF9FFC', '#5227FF', '#00D4FF']}
-          angle={15}
-          noise={0.2}
-          blindCount={16}
-          blindMinWidth={60}
-          spotlightRadius={0.7}
-          spotlightSoftness={1.2}
-          spotlightOpacity={0.8}
-          mouseDampening={0.15}
-          distortAmount={0.1}
-          shineDirection="right"
-          mixBlendMode="normal"
+        <LiquidEther
+          colors={['#5227FF', '#FF9FFC', '#B19EEF']}
+          mouseForce={20}
+          cursorSize={100}
+          isViscous={false}
+          viscous={30}
+          iterationsViscous={32}
+          iterationsPoisson={32}
+          resolution={0.2}
+          isBounce={false}
+          autoDemo={true}
+          autoSpeed={0.5}
+          autoIntensity={2.2}
+          takeoverDuration={0.25}
+          autoResumeDelay={3000}
+          autoRampDuration={0.6}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+            inset: 0,
+          }}
         />
       </div>
 
@@ -41,7 +51,8 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          Where developers connect<br />
+          Where developers connect
+          <br />
           and build together
         </motion.h1>
 
@@ -52,8 +63,8 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.7 }}
         >
-          Discover collaborators, join projects, and grow your skills on an AI-powered
-          platform designed for modern developers.
+          Discover collaborators, join projects, and grow your skills on an
+          AI-powered platform designed for modern developers.
         </motion.p>
 
         {/* Animated Buttons */}
