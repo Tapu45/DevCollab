@@ -75,6 +75,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.61.1",
     "react-resizable-panels": "^3.0.4",
+    "react-share": "^5.2.2",
     "react-window": "^1.8.11",
     "recharts": "^2.15.4",
     "socket.io": "^4.8.1",

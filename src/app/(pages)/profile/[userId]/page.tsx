@@ -174,7 +174,7 @@ export default function ViewUserProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 "
       >
         {/* Hero Section */}
         <motion.div
@@ -184,7 +184,7 @@ export default function ViewUserProfile() {
           className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card to-muted/30 border border-border/50 mb-8"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5"></div>
-          
+
           <div className="relative p-8 lg:p-12">
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
               {/* Profile Avatar */}
@@ -200,7 +200,8 @@ export default function ViewUserProfile() {
                   />
                   <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl lg:text-3xl">
                     {getInitials(
-                      profile.displayName || `${profile.firstName} ${profile.lastName}`
+                      profile.displayName ||
+                        `${profile.firstName} ${profile.lastName}`,
                     )}
                   </AvatarFallback>
                 </Avatar>
@@ -210,9 +211,9 @@ export default function ViewUserProfile() {
               <div className="flex-1 min-w-0 space-y-4">
                 <div>
                   <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
-                    {profile.displayName || `${profile.firstName} ${profile.lastName}`}
+                    {profile.displayName ||
+                      `${profile.firstName} ${profile.lastName}`}
                   </h1>
-                  
                   {profile.bio && (
                     <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
                       {profile.bio}
@@ -220,70 +221,98 @@ export default function ViewUserProfile() {
                   )}
                 </div>
 
-                {/* Stats Row */}
-                <div className="flex flex-wrap items-center gap-6 text-sm">
+                {/* Stats + Social Links + Connect Button in one line */}
+                <div className="flex flex-wrap items-center gap-6 mt-2">
+                  {/* Stats Row */}
                   {profile.location && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="w-4 h-4" />
                       <span>{profile.location}</span>
                     </div>
                   )}
-                  
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-primary" />
-                    <span className="font-semibold text-foreground">{profile.reputationScore}</span>
+                    <span className="font-semibold text-foreground">
+                      {profile.reputationScore}
+                    </span>
                     <span className="text-muted-foreground">reputation</span>
                   </div>
-
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-accent-foreground" />
-                    <span className="font-semibold text-foreground">{profile.totalContributions}</span>
+                    <span className="font-semibold text-foreground">
+                      {profile.totalContributions}
+                    </span>
                     <span className="text-muted-foreground">contributions</span>
                   </div>
-                </div>
 
-                {/* Social Links */}
-                <div className="flex items-center gap-3">
-                  {profile.website && (
-                    <Button variant="outline" size="sm" asChild className="h-9">
-                      <a href={profile.website} target="_blank" rel="noopener noreferrer">
-                        <Globe className="w-4 h-4 mr-2" />
-                        Website
-                        <ExternalLink className="w-3 h-3 ml-1" />
-                      </a>
-                    </Button>
-                  )}
+                  {/* Spacer */}
+                  <div className="flex-1" />
 
-                  {profile.githubUrl && (
-                    <Button variant="outline" size="sm" asChild className="h-9">
-                      <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer">
-                        <Github className="w-4 h-4 mr-2" />
-                        GitHub
-                        <ExternalLink className="w-3 h-3 ml-1" />
-                      </a>
-                    </Button>
-                  )}
-
-                  {profile.linkedinUrl && (
-                    <Button variant="outline" size="sm" asChild className="h-9">
-                      <a href={profile.linkedinUrl} target="_blank" rel="noopener noreferrer">
-                        <Linkedin className="w-4 h-4 mr-2" />
-                        LinkedIn
-                        <ExternalLink className="w-3 h-3 ml-1" />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-
-                {/* Connection Button */}
-                {session?.user?.id && session.user.id !== userId && (
-                  <div className="pt-2">
-                    <ConnectionButton
-                      userId={userId as string}
-                      className="shadow-sm hover:shadow-md transition-shadow duration-200"
-                    />
+                  {/* Social Links */}
+                  <div className="flex items-center gap-3">
+                    {profile.website && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="h-9"
+                      >
+                        <a
+                          href={profile.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Globe className="w-4 h-4 mr-2" />
+                          Website
+                          <ExternalLink className="w-3 h-3 ml-1" />
+                        </a>
+                      </Button>
+                    )}
+                    {profile.githubUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="h-9"
+                      >
+                        <a
+                          href={profile.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Github className="w-4 h-4 mr-2" />
+                          GitHub
+                          <ExternalLink className="w-3 h-3 ml-1" />
+                        </a>
+                      </Button>
+                    )}
+                    {profile.linkedinUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="h-9"
+                      >
+                        <a
+                          href={profile.linkedinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Linkedin className="w-4 h-4 mr-2" />
+                          LinkedIn
+                          <ExternalLink className="w-3 h-3 ml-1" />
+                        </a>
+                      </Button>
+                    )}
+                    {/* Connection Button */}
+                    {session?.user?.id && session.user.id !== userId && (
+                      <ConnectionButton
+                        userId={userId as string}
+                        className="shadow-sm hover:shadow-md transition-shadow duration-200 ml-2"
+                      />
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -308,47 +337,52 @@ export default function ViewUserProfile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {Object.entries(skillsByCategory).map(([category, skills]) => (
-                    <div key={category} className="space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        {getCategoryIcon(category)}
-                        <h3 className="font-medium text-foreground capitalize">
-                          {category.replace(/_/g, ' ').toLowerCase()}
-                        </h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {skills.length}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {skills.map((skill) => (
-                          <div
-                            key={skill.name}
-                            className="p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-foreground">{skill.name}</h4>
-                              <div className="flex items-center gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <div
-                                    key={i}
-                                    className={`w-2 h-2 rounded-full ${
-                                      i < Math.floor(skill.proficiencyLevel / 2)
-                                        ? 'bg-primary'
-                                        : 'bg-muted-foreground/20'
-                                    }`}
-                                  />
-                                ))}
+                  {Object.entries(skillsByCategory).map(
+                    ([category, skills]) => (
+                      <div key={category} className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          {getCategoryIcon(category)}
+                          <h3 className="font-medium text-foreground capitalize">
+                            {category.replace(/_/g, ' ').toLowerCase()}
+                          </h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {skills.length}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {skills.map((skill) => (
+                            <div
+                              key={skill.name}
+                              className="p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-foreground">
+                                  {skill.name}
+                                </h4>
+                                <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`w-2 h-2 rounded-full ${
+                                        i <
+                                        Math.floor(skill.proficiencyLevel / 2)
+                                          ? 'bg-primary'
+                                          : 'bg-muted-foreground/20'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                <span>{skill.yearsExperience} years</span>
+                                <span>{skill.proficiencyLevel}/10</span>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between text-sm text-muted-foreground">
-                              <span>{skill.yearsExperience} years</span>
-                              <span>{skill.proficiencyLevel}/10</span>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -374,10 +408,19 @@ export default function ViewUserProfile() {
                           <div className="p-4 rounded-lg bg-muted/20 border border-border/20 hover:bg-muted/30 transition-colors">
                             <div className="flex items-start justify-between mb-2">
                               <div>
-                                <h4 className="font-semibold text-foreground text-lg">{exp.title}</h4>
-                                <p className="text-primary font-medium">{exp.company}</p>
+                                <h4 className="font-semibold text-foreground text-lg">
+                                  {exp.title}
+                                </h4>
+                                <p className="text-primary font-medium">
+                                  {exp.company}
+                                </p>
                               </div>
-                              <Badge variant={exp.isCurrent ? "default" : "secondary"} className="text-xs">
+                              <Badge
+                                variant={
+                                  exp.isCurrent ? 'default' : 'secondary'
+                                }
+                                className="text-xs"
+                              >
                                 {exp.isCurrent ? 'Current' : 'Previous'}
                               </Badge>
                             </div>
@@ -389,7 +432,10 @@ export default function ViewUserProfile() {
                               <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 <span>
-                                  {formatDate(exp.startDate)} - {exp.endDate ? formatDate(exp.endDate) : 'Present'}
+                                  {formatDate(exp.startDate)} -{' '}
+                                  {exp.endDate
+                                    ? formatDate(exp.endDate)
+                                    : 'Present'}
                                 </span>
                               </div>
                             </div>
@@ -426,9 +472,15 @@ export default function ViewUserProfile() {
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <h4 className="font-semibold text-foreground text-lg">{edu.degree}</h4>
-                              <p className="text-primary font-medium">{edu.institution}</p>
-                              <p className="text-accent-foreground">{edu.fieldOfStudy}</p>
+                              <h4 className="font-semibold text-foreground text-lg">
+                                {edu.degree}
+                              </h4>
+                              <p className="text-primary font-medium">
+                                {edu.institution}
+                              </p>
+                              <p className="text-accent-foreground">
+                                {edu.fieldOfStudy}
+                              </p>
                             </div>
                             {edu.grade && (
                               <Badge variant="outline" className="text-xs">
@@ -439,7 +491,8 @@ export default function ViewUserProfile() {
                           <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
                             <Clock className="w-3 h-3" />
                             <span>
-                              {formatDate(edu.startDate)} - {formatDate(edu.endDate)}
+                              {formatDate(edu.startDate)} -{' '}
+                              {formatDate(edu.endDate)}
                             </span>
                           </div>
                           {edu.description && (
@@ -485,15 +538,21 @@ export default function ViewUserProfile() {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-1 mb-3">
                             {Array.isArray(proj.techStack) ? (
                               <>
-                                {proj.techStack.slice(0, 3).map((tech: string) => (
-                                  <Badge key={tech} variant="secondary" className="text-xs">
-                                    {tech}
-                                  </Badge>
-                                ))}
+                                {proj.techStack
+                                  .slice(0, 3)
+                                  .map((tech: string) => (
+                                    <Badge
+                                      key={tech}
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      {tech}
+                                    </Badge>
+                                  ))}
                                 {proj.techStack.length > 3 && (
                                   <Badge variant="outline" className="text-xs">
                                     +{proj.techStack.length - 3} more
@@ -511,16 +570,34 @@ export default function ViewUserProfile() {
 
                           <div className="flex items-center gap-2">
                             {proj.githubUrl && (
-                              <Button variant="outline" size="sm" asChild className="h-8 text-xs">
-                                <a href={proj.githubUrl} target="_blank" rel="noopener noreferrer">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="h-8 text-xs"
+                              >
+                                <a
+                                  href={proj.githubUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
                                   <Github className="w-3 h-3 mr-1" />
                                   Code
                                 </a>
                               </Button>
                             )}
                             {proj.liveUrl && (
-                              <Button variant="outline" size="sm" asChild className="h-8 text-xs">
-                                <a href={proj.liveUrl} target="_blank" rel="noopener noreferrer">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="h-8 text-xs"
+                              >
+                                <a
+                                  href={proj.liveUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
                                   <ExternalLink className="w-3 h-3 mr-1" />
                                   Live
                                 </a>
@@ -594,7 +671,9 @@ export default function ViewUserProfile() {
                               {end.skill.name}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {end.skill.category.replace(/_/g, ' ').toLowerCase()}
+                              {end.skill.category
+                                .replace(/_/g, ' ')
+                                .toLowerCase()}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground italic">
@@ -619,24 +698,42 @@ export default function ViewUserProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Skills</span>
-                    <span className="font-semibold text-foreground">{profile.skills.length}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Skills
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {profile.skills.length}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Experience</span>
-                    <span className="font-semibold text-foreground">{profile.experiences.length}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Experience
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {profile.experiences.length}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Education</span>
-                    <span className="font-semibold text-foreground">{profile.educations.length}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Education
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {profile.educations.length}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Projects</span>
-                    <span className="font-semibold text-foreground">{profile.ownedProjects.length}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Projects
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {profile.ownedProjects.length}
+                    </span>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Member since</span>
+                    <span className="text-sm text-muted-foreground">
+                      Member since
+                    </span>
                     <span className="font-semibold text-foreground">
                       {formatDate(profile.createdAt)}
                     </span>

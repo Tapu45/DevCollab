@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
 
-  // Fetch only public info
+  // Fetch all public info for the profile page
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       displayName: true,
       firstName: true,
       lastName: true,
+      username: true,
       profilePictureUrl: true,
       bio: true,
       location: true,
@@ -27,6 +28,18 @@ export async function GET(req: NextRequest) {
       accountType: true,
       reputationScore: true,
       totalContributions: true,
+      isActive: true,
+      isBanned: true,
+      bannedUntil: true,
+      banReason: true,
+      showEmail: true,
+      showLocation: true,
+      allowMessages: true,
+      profileCompleted: true,
+      createdAt: true,
+      updatedAt: true,
+
+      // Skills
       skills: {
         select: {
           name: true,
@@ -36,6 +49,8 @@ export async function GET(req: NextRequest) {
           yearsExperience: true,
         }
       },
+
+      // Experiences
       experiences: {
         select: {
           title: true,
@@ -47,6 +62,8 @@ export async function GET(req: NextRequest) {
           responsibilities: true,
         }
       },
+
+      // Educations
       educations: {
         select: {
           institution: true,
@@ -58,6 +75,8 @@ export async function GET(req: NextRequest) {
           description: true,
         }
       },
+
+      // Projects
       ownedProjects: {
         select: {
           id: true,
@@ -75,6 +94,104 @@ export async function GET(req: NextRequest) {
           thumbnailUrl: true,
         }
       },
+      projectCollaborations: {
+        select: {
+          project: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              visibility: true,
+              thumbnailUrl: true,
+            }
+          },
+          role: true,
+          joinedAt: true,
+        }
+      },
+
+      // Connections
+      sentConnections: {
+        select: {
+          id: true,
+          receiverId: true,
+          status: true,
+          type: true,
+          createdAt: true,
+        }
+      },
+      receivedConnections: {
+        select: {
+          id: true,
+          senderId: true,
+          status: true,
+          type: true,
+          createdAt: true,
+        }
+      },
+
+      // Messages (only meta, not content)
+      sentMessages: {
+        select: {
+          id: true,
+          chatId: true,
+          receiverId: true,
+          type: true,
+          createdAt: true,
+        }
+      },
+      receivedMessages: {
+        select: {
+          id: true,
+          chatId: true,
+          senderId: true,
+          type: true,
+          createdAt: true,
+        }
+      },
+
+      // Chat participation
+      chatParticipants: {
+        select: {
+          chatId: true,
+          joinedAt: true,
+          isAdmin: true,
+        }
+      },
+
+      // Tasks
+      taskAssignments: {
+        select: {
+          id: true,
+          projectId: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+        }
+      },
+      createdTasks: {
+        select: {
+          id: true,
+          projectId: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+        }
+      },
+
+      // Comments
+      comments: {
+        select: {
+          id: true,
+          taskId: true,
+          content: true,
+          createdAt: true,
+        }
+      },
+
+      // Achievements
       achievements: {
         select: {
           achievement: {
@@ -89,6 +206,8 @@ export async function GET(req: NextRequest) {
           unlockedAt: true,
         }
       },
+
+      // Endorsements
       endorsements: {
         select: {
           skill: {
@@ -100,6 +219,19 @@ export async function GET(req: NextRequest) {
           message: true,
         }
       },
+      receivedEndorsements: {
+        select: {
+          skill: {
+            select: {
+              name: true,
+              category: true,
+            }
+          },
+          message: true,
+        }
+      },
+
+      // Forum
       forumPosts: {
         select: {
           id: true,
@@ -108,6 +240,16 @@ export async function GET(req: NextRequest) {
           createdAt: true,
         }
       },
+      forumReplies: {
+        select: {
+          id: true,
+          postId: true,
+          content: true,
+          createdAt: true,
+        }
+      },
+
+      // Events
       eventParticipations: {
         select: {
           event: {
@@ -124,13 +266,89 @@ export async function GET(req: NextRequest) {
           status: true,
         }
       },
+      createdEvents: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          startDate: true,
+          endDate: true,
+          location: true,
+          isVirtual: true,
+        }
+      },
+
+      // Notifications (meta only)
+      sentNotifications: {
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          isRead: true,
+          createdAt: true,
+        }
+      },
+      receivedNotifications: {
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          isRead: true,
+          createdAt: true,
+        }
+      },
+
+      // Profile progress
       profileProgress: {
         select: {
           currentSection: true,
           lastUpdated: true,
         }
       },
-      createdAt: true,
+
+      // Connection privacy
+      connectionPrivacy: {
+        select: {
+          connectionPrivacyLevel: true,
+          connectionRequestLevel: true,
+          hideConnections: true,
+        }
+      },
+
+      // Notification preferences
+      notificationPreferences: {
+        select: {
+          category: true,
+          inAppEnabled: true,
+          emailEnabled: true,
+          pushEnabled: true,
+          smsEnabled: true,
+          digestFrequency: true,
+        }
+      },
+
+      // Message reactions and reads (meta)
+      messageReactions: {
+        select: {
+          messageId: true,
+          emoji: true,
+        }
+      },
+      messageReads: {
+        select: {
+          messageId: true,
+          readAt: true,
+        }
+      },
+
+      // Question progress (meta)
+      questionProgress: {
+        select: {
+          questionId: true,
+          status: true,
+          updatedAt: true,
+        }
+      },
     }
   });
 
