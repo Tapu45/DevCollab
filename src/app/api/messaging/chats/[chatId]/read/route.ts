@@ -7,7 +7,7 @@ export async function POST(
   req: NextRequest,
   context: { params: { chatId: string } }
 ) {
-  const { chatId } = context.params;
+  const { chatId } = (await context.params) as { chatId: string };
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {

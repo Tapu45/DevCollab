@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/Prisma';
 import { NotificationType, NotificationPriority, NotificationCategory } from '@/generated/prisma';
-import { emitToUser } from '@/utils/Socket';
+import { pusher } from '@/utils/Pusher';
 
 export interface CreateNotificationData {
     userId: string;
@@ -30,9 +30,10 @@ export class NotificationService {
   static async createNotification(data: CreateNotificationData) {
     // Check user preferences
     const preferences = await this.getUserPreferences(data.userId, data.category);
-    if (!preferences?.inAppEnabled) {
-      return null; // User has disabled this category
-    }
+    // if (!preferences?.inAppEnabled) {
+    //   console.log('Notification not created: preferences missing or disabled for', data.userId, data.category);
+    //   return null;
+    // }
 
     // Check quiet hours
     if (this.isInQuietHours(preferences)) {
@@ -47,14 +48,14 @@ export class NotificationService {
       },
     });
 
-    emitToUser(data.userId, 'notification_received', {
-        notificationId: notification.id,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        actionUrl: notification.actionUrl,
-        priority: notification.priority,
-      });
+    await pusher.trigger(`user-${data.userId}`, 'notification_received', {
+      notificationId: notification.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      actionUrl: notification.actionUrl,
+      priority: notification.priority,
+    });
 
     // Trigger real-time delivery
     await this.deliverNotification(notification);
@@ -173,7 +174,7 @@ export class NotificationService {
 
     if (result.count > 0) {
       // Emit real-time event
-      emitToUser(userId, 'notification_read', {
+      await pusher.trigger(`user-${userId}`, 'notification_read', {
         notificationId,
       });
     }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, Loader2 } from 'lucide-react';
 import { Message } from '@/types/Message';
 
 const formatTime = (dateString: string) => {
@@ -21,12 +21,34 @@ export default function MessageBubble({
   message,
   isOwn,
   showAvatar,
+  isGrouped = false,
+  isFirst = true,
+  isLast = true,
+  isSending = false, // <-- New prop
 }: {
   message: Message;
   isOwn: boolean;
   showAvatar: boolean;
+  isGrouped?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
+  isSending?: boolean; // <-- New prop
 }) {
   const [showReactions, setShowReactions] = useState(false);
+   if (!message.sender) {
+     return (
+       <div className="text-xs text-muted-foreground">
+         Message sender not available.
+       </div>
+     );
+   }
+
+  // Compute dynamic bubble classes for grouping
+  const bubbleRadius = isGrouped
+    ? isOwn
+      ? `${isFirst ? 'rounded-tr-2xl' : 'rounded-tr-md'} ${isLast ? 'rounded-br-2xl' : 'rounded-br-md'} rounded-tl-2xl rounded-bl-2xl`
+      : `${isFirst ? 'rounded-tl-2xl' : 'rounded-tl-md'} ${isLast ? 'rounded-bl-2xl' : 'rounded-bl-md'} rounded-tr-2xl rounded-br-2xl`
+    : 'rounded-2xl';
 
   return (
     <motion.div
@@ -34,18 +56,22 @@ export default function MessageBubble({
       animate={{ opacity: 1, y: 0 }}
       className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} ${showAvatar ? 'mt-4' : 'mt-1'}`}
     >
-      {/* Avatar */}
-      {showAvatar && !isOwn && (
-        <Avatar className="h-8 w-8 mt-1">
-          <AvatarImage
-            src={message.sender.profilePictureUrl || ''}
-            alt={message.sender.displayName || message.sender.username}
-          />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-            {message.sender.displayName?.charAt(0) ||
-              message.sender.username.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
+      {/* Avatar Spacer (always present for alignment, even if avatar is hidden) */}
+      {!isOwn && (
+        <div className="w-10 flex-shrink-0 flex items-start">
+          {showAvatar && (
+            <Avatar className="h-8 w-8 mt-1">
+              <AvatarImage
+                src={message.sender.profilePictureUrl || ''}
+                alt={message.sender.displayName || message.sender.username}
+              />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {message.sender.displayName?.charAt(0) ||
+                  message.sender.username.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+          )}
+        </div>
       )}
 
       {/* Message Content */}
@@ -53,19 +79,19 @@ export default function MessageBubble({
         className={`flex flex-col max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}
       >
         {/* Sender Name */}
-        {showAvatar && !isOwn && (
+        {/* {showAvatar && !isOwn && (
           <span className="text-xs text-muted-foreground mb-1">
             {message.sender.displayName || message.sender.username}
           </span>
-        )}
+        )} */}
 
         {/* Message Bubble */}
         <div
-          className={`relative group rounded-2xl px-4 py-2 ${
+          className={`relative group px-4 py-2 ${bubbleRadius} ${
             isOwn
               ? 'bg-primary text-primary-foreground'
               : 'bg-muted text-foreground'
-          }`}
+          } ${isSending ? 'opacity-70' : ''}`} // <-- Dim while sending
           onDoubleClick={() => setShowReactions(!showReactions)}
         >
           {/* Reply Context */}
@@ -94,7 +120,9 @@ export default function MessageBubble({
             </span>
             {isOwn && (
               <div className="flex items-center">
-                {(message.readBy?.length ?? 0) > 1 ? (
+                {isSending ? (
+                  <Loader2 className="w-3 h-3 animate-spin" /> // <-- Spinner while sending
+                ) : (message.readBy?.length ?? 0) > 1 ? (
                   <CheckCheck className="w-3 h-3" />
                 ) : (
                   <Check className="w-3 h-3" />

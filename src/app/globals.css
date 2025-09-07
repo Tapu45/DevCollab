@@ -233,3 +233,24 @@
   color: var(--primary);
 }
 
+/* Toast Notification Styles */
+[data-sonner-toaster][data-position="bottom-right"] {
+  bottom: 20px;
+  right: 20px;
+}
+
+[data-sonner-toast] {
+  --border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-sonner-toast][data-type="success"] {
+  background-color: var(--color-success);
+  color: var(--color-success-foreground);
+}
+
+[data-sonner-toast][data-type="error"] {
+  background-color: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+}
+

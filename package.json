@@ -71,6 +71,8 @@
     "nodemailer": "^6.10.1",
     "ogl": "^1.0.11",
     "phosphor-react": "^1.4.1",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
     "razorpay": "^2.9.6",
     "react": "^19.0.0",
     "react-day-picker": "^9.8.1",

@@ -41,7 +41,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationCategory, NotificationPriority } from '@/generated/prisma';
-import { useSocket } from '@/hooks/useSocket';
+import { usePusherEvent } from '@/hooks/Pusher';
+import { useSession } from 'next-auth/react'; 
 
 // Types
 interface Notification {
@@ -200,7 +201,8 @@ export default function NotificationPage() {
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { socket } = useSocket();
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
   const queryClient = useQueryClient();
 
   // Queries
@@ -233,22 +235,17 @@ export default function NotificationPage() {
   });
 
   // Real-time updates
-  useEffect(() => {
-    if (socket) {
-      socket.on('notification_received', () => {
-        refetch();
-      });
+  usePusherEvent({
+    channelName: userId ? `user-${userId}` : '',
+    eventName: 'notification_received',
+    callback: () => refetch(),
+  });
 
-      socket.on('notification_read', () => {
-        refetch();
-      });
-
-      return () => {
-        socket.off('notification_received');
-        socket.off('notification_read');
-      };
-    }
-  }, [socket, refetch]);
+  usePusherEvent({
+    channelName: userId ? `user-${userId}` : '',
+    eventName: 'notification_read',
+    callback: () => refetch(),
+  });
 
   // Handlers
   const handleMarkAsRead = (notificationId: string) => {

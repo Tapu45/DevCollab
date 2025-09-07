@@ -29,6 +29,7 @@ export interface Chat {
 }
 
 export interface Message {
+  isSending: boolean | undefined;
   id: string;
   content: string;
   type: 'TEXT' | 'IMAGE' | 'FILE' | 'CODE' | 'SYSTEM';

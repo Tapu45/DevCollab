@@ -108,11 +108,11 @@ export default function ChatListItem({
               )}
             </div>
             <div className="flex items-center gap-1">
-              {chat.lastMessage && (
+              {/* {chat.lastMessage && (
                 <span className="text-xs text-muted-foreground">
                   {chat.lastMessage.createdAt}
                 </span>
-              )}
+              )} */}
               {chat.unreadCount > 0 && (
                 <Badge variant="destructive" className="text-xs">
                   {chat.unreadCount > 99 ? '99+' : chat.unreadCount}

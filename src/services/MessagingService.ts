@@ -2,7 +2,8 @@ import { prisma } from '@/lib/Prisma';
 import { MessageType, ChatType } from '@/generated/prisma';
 import { NotificationService } from './NotificationService';
 import { NotificationType, NotificationCategory } from '@/generated/prisma';
-import { emitToChat } from '@/utils/Socket';
+import { pusher } from '@/utils/Pusher';
+
 
 export interface CreateMessageData {
   chatId: string;
@@ -195,14 +196,14 @@ export class MessagingService {
     // Mark as read for sender
     await this.markMessageAsRead(message.id, senderId);
 
-    emitToChat(chatId, 'message_received', {
-        messageId: message.id,
-        chatId: message.chatId,
-        senderId: message.senderId,
-        content: message.content,
-        type: message.type,
-        createdAt: message.createdAt,
-      });
+    await pusher.trigger(`chat-${chatId}`, 'message_received', {
+      messageId: message.id,
+      chatId: message.chatId,
+      senderId: message.senderId,
+      content: message.content,
+      type: message.type,
+      createdAt: message.createdAt,
+    });
 
     // Send notifications to other participants
     await this.notifyMessageSent(message, senderId);
@@ -450,16 +451,17 @@ export class MessagingService {
         select: { chatId: true },
       });
   
-      if (message) {
-        emitToChat(message.chatId, 'message_reaction', {
-          messageId,
-          userId,
-          emoji,
-          action: 'add',
-        });
-      }
+    if (message) {
+      
+      await pusher.trigger(`chat-${message.chatId}`, 'message_reaction', {
+        messageId,
+        userId,
+        emoji,
+        action: 'add',
+      });
     }
-  
+  }
+
   // Remove reaction from message
   static async removeReaction(messageId: string, userId: string, emoji: string): Promise<void> {
     await prisma.messageReaction.deleteMany({
@@ -477,7 +479,7 @@ export class MessagingService {
     });
 
     if (message) {
-      emitToChat(message.chatId, 'message_reaction', {
+      await pusher.trigger(`chat-${message.chatId}`, 'message_reaction', {
         messageId,
         userId,
         emoji,

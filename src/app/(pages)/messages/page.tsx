@@ -1,9 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import {MessageCircle,Search,Plus,Phone,Video,Info,Paperclip,Smile,Send,Mic,MicOff,} from 'lucide-react';
+import {
+  MessageCircle,
+  Search,
+  Plus,
+  Phone,
+  Video,
+  Info,
+  Paperclip,
+  Smile,
+  Send,
+  Mic,
+  MicOff,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -66,6 +78,8 @@ export default function MessagesPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFilePicker, setShowFilePicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -110,6 +124,21 @@ export default function MessagesPage() {
     refetchInterval: 5000,
   });
 
+  // NEW: Auto-scroll to bottom when messages change (moved to top with other hooks)
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Small delay to ensure DOM is rendered
+      setTimeout(() => {
+        const viewport = scrollAreaRef.current?.querySelector(
+          '[data-radix-scroll-area-viewport]',
+        ) as HTMLElement;
+        if (viewport) {
+          viewport.scrollTop = viewport.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [messages]);
+
   // Mutations
   const sendMessageMutation = useMutation({
     mutationFn: ({
@@ -121,12 +150,71 @@ export default function MessagesPage() {
       content: string;
       type: string;
     }) => sendMessage(chatId, content, type),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] });
-      queryClient.invalidateQueries({ queryKey: ['chats'] });
-      setNewMessage('');
+    onMutate: async ({ chatId, content, type }) => {
+       if (!user) {
+         throw new Error('User not available for sending message');
+       }
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['messages', chatId] });
+
+      // Snapshot previous messages
+      const previousMessages = queryClient.getQueryData<Message[]>([
+        'messages',
+        chatId,
+      ]);
+
+      // Optimistically add the message
+      const tempId = `temp-${Date.now()}-${Math.random()}`;
+      const optimisticMessage: Message = {
+        id: tempId,
+        content,
+        type: type as Message['type'], // <-- Cast to match the union type
+        senderId: currentUserId!,
+        sender: user!, // Assuming user object has the sender details
+        createdAt: new Date().toISOString(),
+        isEdited: false,
+        readBy: [], // Will update on success
+        reactions: [],
+        replyTo: undefined,
+        isSending: true,
+        isDeleted: false, // <-- Custom flag (ensure Message type includes this)
+      };
+
+      queryClient.setQueryData<Message[]>(['messages', chatId], (old) => [
+        ...(old || []),
+        optimisticMessage,
+      ]);
+
+      return { previousMessages, tempId };
     },
-    onError: (error) => {
+    onSuccess: (data, variables, context) => {
+      // Update the optimistic message with real data
+      queryClient.setQueryData<Message[]>(
+        ['messages', variables.chatId],
+        (old) => {
+          if (!old) return old;
+          return old.map((msg) =>
+            msg.id === context?.tempId
+              ? { ...data, isSending: false } // <-- Remove sending flag
+              : msg,
+          );
+        },
+      );
+
+      queryClient.invalidateQueries({
+        queryKey: ['messages', variables.chatId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+      // Note: Input is cleared in handleSendMessage, not here
+    },
+    onError: (error, variables, context) => {
+      // Revert to previous messages
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ['messages', variables.chatId],
+          context.previousMessages,
+        );
+      }
       toast.error(error.message || 'Failed to send message');
     },
   });
@@ -147,6 +235,9 @@ export default function MessagesPage() {
       content: newMessage.trim(),
       type: 'TEXT',
     });
+
+    // Clear input instantly
+    setNewMessage('');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -199,145 +290,156 @@ export default function MessagesPage() {
     return <Loader />;
   }
 
+  function groupMessages(messages: Message[]) {
+    const groups: { senderId: string; messages: Message[] }[] = [];
+    let currentGroup: { senderId: string; messages: Message[] } | null = null;
+
+    for (const msg of messages) {
+      if (!currentGroup || currentGroup.senderId !== msg.senderId) {
+        if (currentGroup) groups.push(currentGroup);
+        currentGroup = { senderId: msg.senderId, messages: [msg] };
+      } else {
+        currentGroup.messages.push(msg);
+      }
+    }
+    if (currentGroup) groups.push(currentGroup);
+    return groups;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="flex h-screen">
+    <div className=" bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="flex h-[84vh]">
         {/* Chat List Sidebar */}
-        <div className="w-80 border-r border-border bg-card/50 backdrop-blur-sm">
+        <div className="w-80 border-r border-border bg-card/50 backdrop-blur-sm h-[84vh] flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
-                Messages
-              </h1>
-              <div className="flex items-center gap-2">
-                {/* Add MessageSearch component here */}
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => router.push('/messages/new')}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
+          <div className="p-4 border-b border-border shrink-0">
+            <div className="flex items-center gap-2">
+              {' '}
+              {/* Make this a flex row */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push('/messages/new')}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
             </div>
           </div>
 
           {/* Chat List with Tabs */}
-          <Tabs defaultValue="all" className="flex-1 flex flex-col">
-            <div className="px-4 pt-2">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all" className="text-xs">
-                  All ({filteredChats.length})
-                </TabsTrigger>
-                <TabsTrigger value="direct" className="text-xs">
-                  Direct ({directChats.length})
-                </TabsTrigger>
-                <TabsTrigger value="groups" className="text-xs">
-                  Groups ({groupChats.length})
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="all" className="flex-1 m-0">
-              <ScrollArea className="h-full">
-                <div className="space-y-1">
-                  <AnimatePresence>
-                    {filteredChats.map((chat) => (
-                      <ChatListItem
-                        key={chat.id}
-                        chat={chat}
-                        isSelected={selectedChatId === chat.id}
-                        onSelect={() => handleChatSelect(chat.id)}
-                        onPin={() => {
-                          /* Handle pin */
-                        }}
-                        onArchive={() => {
-                          /* Handle archive */
-                        }}
-                        onMute={() => {
-                          /* Handle mute */
-                        }}
-                        currentUserId={currentUserId} // <-- Add this
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="direct" className="flex-1 m-0">
-              <ScrollArea className="h-full">
-                <div className="space-y-1">
-                  <AnimatePresence>
-                    {directChats.map((chat) => (
-                      <ChatListItem
-                        key={chat.id}
-                        chat={chat}
-                        isSelected={selectedChatId === chat.id}
-                        onSelect={() => handleChatSelect(chat.id)}
-                        onPin={() => {}}
-                        onArchive={() => {}}
-                        onMute={() => {}}
-                        currentUserId={currentUserId}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="groups" className="flex-1 m-0 flex flex-col">
-              {/* Group Chat Manager */}
-              <div className="p-4 border-b border-border">
-                <GroupChatManager
-                  onChatSelect={handleChatSelect}
-                  selectedChatId={selectedChatId || undefined}
-                  onGroupCreated={handleGroupCreated}
-                />
+          <div className="flex-1 min-h-0">
+            <Tabs defaultValue="all" className="flex-1 flex flex-col h-full">
+              <div className="px-4 pt-2">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="all" className="text-xs">
+                    All ({filteredChats.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="direct" className="text-xs">
+                    Direct ({directChats.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="groups" className="text-xs">
+                    Groups ({groupChats.length})
+                  </TabsTrigger>
+                </TabsList>
               </div>
 
-              {/* Group Chats List */}
-              <ScrollArea className="flex-1">
-                <div className="space-y-1">
-                  <AnimatePresence>
-                    {groupChats.map((chat) => (
-                      <ChatListItem
-                        key={chat.id}
-                        chat={chat}
-                        isSelected={selectedChatId === chat.id}
-                        onSelect={() => handleChatSelect(chat.id)}
-                        onPin={() => {}}
-                        onArchive={() => {}}
-                        onMute={() => {}}
-                        currentUserId={currentUserId}
-                      />
-                    ))}
-                  </AnimatePresence>
+              <TabsContent value="all" className="flex-1 m-0 min-h-0">
+                <ScrollArea className="h-full max-h-full">
+                  <div className="space-y-1">
+                    <AnimatePresence>
+                      {filteredChats.map((chat) => (
+                        <ChatListItem
+                          key={chat.id}
+                          chat={chat}
+                          isSelected={selectedChatId === chat.id}
+                          onSelect={() => handleChatSelect(chat.id)}
+                          onPin={() => {
+                            /* Handle pin */
+                          }}
+                          onArchive={() => {
+                            /* Handle archive */
+                          }}
+                          onMute={() => {
+                            /* Handle mute */
+                          }}
+                          currentUserId={currentUserId} // <-- Add this
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="direct" className="flex-1 m-0">
+                <ScrollArea className="h-full">
+                  <div className="space-y-1">
+                    <AnimatePresence>
+                      {directChats.map((chat) => (
+                        <ChatListItem
+                          key={chat.id}
+                          chat={chat}
+                          isSelected={selectedChatId === chat.id}
+                          onSelect={() => handleChatSelect(chat.id)}
+                          onPin={() => {}}
+                          onArchive={() => {}}
+                          onMute={() => {}}
+                          currentUserId={currentUserId}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="groups" className="flex-1 m-0 flex flex-col">
+                {/* Group Chat Manager */}
+                <div className="p-4 border-b border-border">
+                  <GroupChatManager
+                    onChatSelect={handleChatSelect}
+                    selectedChatId={selectedChatId || undefined}
+                    onGroupCreated={handleGroupCreated}
+                  />
                 </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+
+                {/* Group Chats List */}
+                <ScrollArea className="flex-1">
+                  <div className="space-y-1">
+                    <AnimatePresence>
+                      {groupChats.map((chat) => (
+                        <ChatListItem
+                          key={chat.id}
+                          chat={chat}
+                          isSelected={selectedChatId === chat.id}
+                          onSelect={() => handleChatSelect(chat.id)}
+                          onPin={() => {}}
+                          onArchive={() => {}}
+                          onMute={() => {}}
+                          currentUserId={currentUserId}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
 
         {/* Chat Window - keep your existing implementation */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col h-[84vh]">
           {selectedChat ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm">
+              <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
@@ -395,95 +497,125 @@ export default function MessagesPage() {
               </div>
 
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {loadingMessages ? (
-                    <div className="flex justify-center items-center h-32">
-                      <Loader />
-                    </div>
-                  ) : (
-                    <AnimatePresence>
-                      {messages.map((message, index) => {
-                        const prevMessage = messages[index - 1];
-                        const showAvatar =
-                          !prevMessage ||
-                          prevMessage.senderId !== message.senderId;
-                        const isOwn = message.senderId === currentUserId;
-
-                        return (
-                          <MessageBubble
-                            key={message.id}
-                            message={message}
-                            isOwn={isOwn}
-                            showAvatar={showAvatar}
-                          />
-                        );
-                      })}
-                    </AnimatePresence>
-                  )}
-                </div>
-              </ScrollArea>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <ScrollArea className="flex-1 p-4 h-full max-h-full">
+                  <div ref={scrollAreaRef} className="space-y-4">
+                    {loadingMessages ? (
+                      <div className="flex justify-center items-center h-32">
+                        <Loader />
+                      </div>
+                    ) : (
+                      <AnimatePresence>
+                        {groupMessages(messages).map((group, groupIdx) => {
+                          const isOwn = group.senderId === currentUserId;
+                          return (
+                            <div
+                              key={groupIdx}
+                              className={`flex ${isOwn ? 'justify-end' : ''}`}
+                            >
+                              {/* Avatar spacer for alignment (only for others, not own messages) */}
+                              {!isOwn && (
+                                <div className="w-10 flex flex-col items-end">
+                                  {/* Only show avatar for the first message in group */}
+                                  <div
+                                    className={
+                                      group.messages.length > 0
+                                        ? 'h-8 mt-1'
+                                        : ''
+                                    }
+                                  >
+                                    {/* Empty div just for spacing */}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Message bubbles */}
+                              <div className="flex flex-col gap-1 flex-1">
+                                {group.messages.map((message, idx) => (
+                                  <MessageBubble
+                                    key={`${message.id}-${idx}`} // <-- More stable key
+                                    message={message}
+                                    isOwn={isOwn}
+                                    showAvatar={!isOwn && idx === 0}
+                                    isGrouped={group.messages.length > 1}
+                                    isFirst={idx === 0}
+                                    isLast={idx === group.messages.length - 1}
+                                    isSending={message.isSending}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
 
               {/* Message Input - keep your existing implementation */}
-              <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 relative">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setShowFilePicker(!showFilePicker)}
-                      >
-                        <Paperclip className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      >
-                        <Smile className="w-4 h-4" />
-                      </Button>
-                    </div>
+              <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm shrink-0">
+                <div className="flex items-center gap-3">
+                  {/* Left icons */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-full"
+                    onClick={() => setShowFilePicker(!showFilePicker)}
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-full"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  >
+                    <Smile className="w-5 h-5" />
+                  </Button>
 
+                  {/* Message input */}
+                  <div className="flex-1 relative">
                     <textarea
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder="Type a message..."
-                      className="w-full min-h-[40px] max-h-32 p-3 border border-input rounded-lg resize-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      className="w-full min-h-[44px] max-h-32 px-4 py-3 border border-input rounded-full bg-background focus:ring-2 focus:ring-ring focus:border-transparent resize-none transition"
                       rows={1}
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {isRecording ? (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setIsRecording(false)}
-                      >
-                        <MicOff className="w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsRecording(true)}
-                      >
-                        <Mic className="w-4 h-4" />
-                      </Button>
-                    )}
-
+                  {/* Mic and Send buttons */}
+                  {isRecording ? (
                     <Button
-                      size="sm"
-                      onClick={handleSendMessage}
-                      disabled={
-                        !newMessage.trim() || sendMessageMutation.isPending
-                      }
+                      size="icon"
+                      variant="destructive"
+                      className="rounded-full"
+                      onClick={() => setIsRecording(false)}
                     >
-                      <Send className="w-4 h-4" />
+                      <MicOff className="w-5 h-5" />
                     </Button>
-                  </div>
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="rounded-full"
+                      onClick={() => setIsRecording(true)}
+                    >
+                      <Mic className="w-5 h-5" />
+                    </Button>
+                  )}
+
+                  <Button
+                    size="icon"
+                    className="rounded-full bg-primary text-white hover:bg-primary/90 transition"
+                    onClick={handleSendMessage}
+                    disabled={
+                      !newMessage.trim() || sendMessageMutation.isPending
+                    }
+                  >
+                    <Send className="w-5 h-5" />
+                  </Button>
                 </div>
               </div>
             </>
