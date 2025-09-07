@@ -1,21 +1,23 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import LeftPanel from "../LeftPanel";
+'use client';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import LeftPanel from '../LeftPanel';
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(Array(6).fill(""));
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(Array(6).fill(''));
+  const [status, setStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
+  const [message, setMessage] = useState('');
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Prefill email from query
   useEffect(() => {
-    const emailFromQuery = searchParams.get("email");
+    const emailFromQuery = searchParams.get('email');
     if (emailFromQuery) setEmail(emailFromQuery);
   }, [searchParams]);
 
@@ -36,33 +38,38 @@ export default function VerifyEmailPage() {
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const pasted = e.clipboardData.getData("Text").replace(/\D/g, "").slice(0, 6);
+    const pasted = e.clipboardData
+      .getData('Text')
+      .replace(/\D/g, '')
+      .slice(0, 6);
     if (pasted.length === 6) {
-      setOtp(pasted.split(""));
+      setOtp(pasted.split(''));
       inputRefs.current[5]?.focus();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus("loading");
-    setMessage("Verifying your email...");
-    const res = await fetch("/api/auth/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp: otp.join("") }),
+    setStatus('loading');
+    setMessage('Verifying your email...');
+    const res = await fetch('/api/auth/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp: otp.join('') }),
     });
     const data = await res.json();
     if (res.ok) {
-      setStatus("success");
-      setMessage("Your email has been verified successfully! You can now log in.");
+      setStatus('success');
+      setMessage(
+        'Your email has been verified successfully! You can now log in.',
+      );
       setUserId(data.userId);
-       setTimeout(() => {
+      setTimeout(() => {
         router.push(`/auth/choose-plan?userId=${data.userId}`);
       }, 1800);
     } else {
-      setStatus("error");
-      setMessage(data.error || "Verification failed.");
+      setStatus('error');
+      setMessage(data.error || 'Verification failed.');
     }
   };
 
@@ -90,24 +97,52 @@ export default function VerifyEmailPage() {
           <div className="flex flex-col items-center mb-2">
             <div className="mb-2">
               {/* Mail/Shield Icon */}
-              <svg width="40" height="40" fill="none" viewBox="0 0 24 24" className="text-[var(--primary)]">
-                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M3 7l9 6 9-6" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M17 13v2a3 3 0 01-6 0v-2" stroke="currentColor" strokeWidth="1.5" />
+              <svg
+                width="40"
+                height="40"
+                fill="none"
+                viewBox="0 0 24 24"
+                className="text-[var(--primary)]"
+              >
+                <rect
+                  x="3"
+                  y="5"
+                  width="18"
+                  height="14"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M3 7l9 6 9-6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <path
+                  d="M17 13v2a3 3 0 01-6 0v-2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
               </svg>
             </div>
             <h2 className="text-3xl font-extrabold text-center tracking-tight mb-1">
               Verify your email
             </h2>
             <p className="text-[var(--muted-foreground)] text-base text-center">
-              An OTP was sent to <span className="font-semibold text-[var(--primary)]">{email}</span>. Enter it below to continue.
+              An OTP was sent to{' '}
+              <span className="font-semibold text-[var(--primary)]">
+                {email}
+              </span>
+              . Enter it below to continue.
             </p>
           </div>
           <div className="flex flex-row gap-3 justify-center mb-2">
             {otp.map((digit, idx) => (
               <input
                 key={idx}
-                ref={el => { inputRefs.current[idx] = el; }}
+                ref={(el) => {
+                  inputRefs.current[idx] = el;
+                }}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -117,13 +152,13 @@ export default function VerifyEmailPage() {
                   border-[var(--input)] bg-[var(--background)] text-[var(--foreground)]
                   focus:outline-none focus:ring-2 focus:ring-[var(--primary)]
                   shadow transition-all
-                  ${digit ? "border-[var(--primary)] bg-[var(--card)]" : ""}
-                  ${status === "error" ? "border-[var(--destructive)]" : ""}
+                  ${digit ? 'border-[var(--primary)] bg-[var(--card)]' : ''}
+                  ${status === 'error' ? 'border-[var(--destructive)]' : ''}
                 `}
                 value={digit}
-                onChange={e => handleOtpChange(idx, e.target.value)}
+                onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onPaste={handleOtpPaste}
-                disabled={status === "success"}
+                disabled={status === 'success'}
                 autoFocus={idx === 0}
                 aria-label={`OTP digit ${idx + 1}`}
               />
@@ -140,18 +175,20 @@ export default function VerifyEmailPage() {
               transition-all shadow-lg
               disabled:opacity-60
             "
-            disabled={status === "loading" || otp.some(d => !d)}
+            disabled={status === 'loading' || otp.some((d) => !d)}
           >
-            {status === "loading" ? "Verifying..." : "Verify"}
+            {status === 'loading' ? 'Verifying...' : 'Verify'}
           </button>
           {message && (
-            <div className={
-              status === "success"
-                ? "text-green-600 dark:text-green-400 text-center font-medium"
-                : status === "error"
-                ? "text-[var(--destructive)] text-center font-medium"
-                : "text-center"
-            }>
+            <div
+              className={
+                status === 'success'
+                  ? 'text-green-600 dark:text-green-400 text-center font-medium'
+                  : status === 'error'
+                    ? 'text-[var(--destructive)] text-center font-medium'
+                    : 'text-center'
+              }
+            >
               {message}
             </div>
           )}
@@ -167,5 +204,19 @@ export default function VerifyEmailPage() {
         }
       `}</style> */}
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-screen">
+          Loading...
+        </div>
+      }
+    >
+      <VerifyEmailPageInner />
+    </Suspense>
   );
 }

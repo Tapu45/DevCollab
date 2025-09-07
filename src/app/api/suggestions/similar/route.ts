@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
         // Generate new data if cache is missing/expired
           const { searchParams } = new URL(request.url);
-        const limit = parseInt(searchParams.get('limit') || '10');
+        const limit = parseInt(searchParams.get('limit') || '9');
         const location = searchParams.get('location') || undefined;
         const experienceLevel = searchParams.get('experienceLevel') || undefined;
 

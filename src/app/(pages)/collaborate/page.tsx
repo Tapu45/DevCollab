@@ -18,6 +18,8 @@ import {
   Star,
   Briefcase,
 } from 'lucide-react';
+import { usePage } from '@/context/PageContext';
+import { useEffect } from 'react';
 
 interface SuggestedUser {
   userId: string;
@@ -94,6 +96,14 @@ const cardHoverVariants = {
 
 export default function DeveloperSuggestions() {
   const router = useRouter();
+  const { setPageInfo } = usePage();
+
+  useEffect(() => {
+    setPageInfo(
+      'Collaborate',
+      'Discover your perfect developer match',
+    );
+  }, [setPageInfo]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['suggested-users'],

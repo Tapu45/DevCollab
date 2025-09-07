@@ -71,14 +71,6 @@ const Footer = () => {
       { name: "Contact", href: "#contact" },
       { name: "Partners", href: "#partners" }
     ],
-    legal: [
-      { name: "Privacy Policy", href: "#privacy" },
-      { name: "Terms of Service", href: "#terms" },
-      { name: "Cookie Policy", href: "#cookies" },
-      { name: "Security", href: "#security" },
-      { name: "Compliance", href: "#compliance" },
-      { name: "GDPR", href: "#gdpr" }
-    ]
   };
 
   const socialLinks = [
@@ -149,7 +141,7 @@ const Footer = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
                 <Code2 className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-foreground">DevConnect</span>
+              <span className="text-xl font-bold text-foreground">Lumora</span>
             </motion.div>
 
             <p className="text-muted-foreground mb-6 leading-relaxed">
@@ -157,50 +149,7 @@ const Footer = () => {
               Join our community of passionate creators and innovators.
             </p>
 
-            {/* Newsletter Signup */}
-            <div className="mb-6">
-              <h4 className="text-lg font-semibold text-foreground mb-3">Stay Updated</h4>
-              <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
-                <div className="flex-1 relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    className="w-full px-4 py-3 bg-muted/50 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                    required
-                  />
-                  {isSubscribed && (
-                    <motion.div
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                    >
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    </motion.div>
-                  )}
-                </div>
-                <motion.button
-                  type="submit"
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 font-medium"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={isSubscribed}
-                >
-                  {isSubscribed ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Subscribed!
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Subscribe
-                    </>
-                  )}
-                </motion.button>
-              </form>
-            </div>
+          
 
            
           </motion.div>

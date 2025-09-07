@@ -4,36 +4,29 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import GradientBlinds from '../../Animations/GradientBlinds';
-import LiquidEther from '@/components/Animations/Liquid-Ether';
+
 
 export default function HeroSection() {
   return (
-    <header className="relative w-full flex flex-col items-center justify-center min-h-[130vh] py-30 overflow-hidden mb-8">
+    <header className="relative w-full flex flex-col items-center justify-center min-h-[130vh] py-30 overflow-hidden mb-0">
       {/* Animated Background - needs to receive pointer events */}
       <div className="absolute inset-0 w-full h-full z-0 pointer-events-auto">
-        <LiquidEther
-          colors={['#5227FF', '#FF9FFC', '#B19EEF']}
-          mouseForce={20}
-          cursorSize={100}
-          isViscous={false}
-          viscous={30}
-          iterationsViscous={32}
-          iterationsPoisson={32}
-          resolution={0.2}
-          isBounce={false}
-          autoDemo={true}
-          autoSpeed={0.5}
-          autoIntensity={2.2}
-          takeoverDuration={0.25}
-          autoResumeDelay={3000}
-          autoRampDuration={0.6}
-          style={{
-            width: '100%',
-            height: '100%',
-            position: 'absolute',
-            inset: 0,
-          }}
-        />
+        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <GradientBlinds
+            gradientColors={['#FF9FFC', '#5227FF']}
+            angle={25}
+            noise={0.3}
+            blindCount={12}
+            blindMinWidth={50}
+            spotlightRadius={0.5}
+            spotlightSoftness={1}
+            spotlightOpacity={1}
+            mouseDampening={0.15}
+            distortAmount={0}
+            shineDirection="left"
+            mixBlendMode="lighten"
+          />
+        </div>
       </div>
 
       {/* Fallback gradient background */}

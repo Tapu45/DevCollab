@@ -8,6 +8,7 @@ import QueryProvider from "../context/QueryProvider";
 import NextAuthProvider from "@/context/SessionProvider";
 import { RazorpayScript } from "@/lib/RazorpayScript";
 import { PageProvider } from "@/context/PageContext"; // Add import
+import LenisProvider from "@/components/shared/LenisProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,19 +32,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <NextAuthProvider>
-          <QueryProvider>
-            <AuthProvider>
-              <SignupProvider>
-                <PageProvider> {/* Add PageProvider here */}
-                  <RouteLayoutWrapper>{children}</RouteLayoutWrapper>
-                  <RazorpayScript />
-                </PageProvider>
-              </SignupProvider>
-            </AuthProvider>
-          </QueryProvider>
-        </NextAuthProvider>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        {/* <LenisProvider> */}
+          <NextAuthProvider>
+            <QueryProvider>
+              <AuthProvider>
+                <SignupProvider>
+                  <PageProvider>
+                    <RouteLayoutWrapper>{children}</RouteLayoutWrapper>
+                    <RazorpayScript />
+                  </PageProvider>
+                </SignupProvider>
+              </AuthProvider>
+            </QueryProvider>
+          </NextAuthProvider>
+        {/* </LenisProvider> */}
       </body>
     </html>
   );

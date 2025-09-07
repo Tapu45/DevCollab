@@ -135,7 +135,7 @@ export default function LeftPanel({ currentStep }: LeftPanelProps) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            DevCollab
+            Lumora
           </motion.span>
         </div>
 

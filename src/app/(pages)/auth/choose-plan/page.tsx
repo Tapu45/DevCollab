@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignupContext } from '@/context/SignupContext';
 import { signIn } from 'next-auth/react';
@@ -23,7 +23,7 @@ declare global {
   }
 }
 
-export default function ChoosePlanPage() {
+function ChoosePlanPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
@@ -84,7 +84,7 @@ export default function ChoosePlanPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to choose plan');
 
       // If payment is required, open Razorpay checkout
-      const selectedPlanData = plans.find(p => p.id === selectedPlan);
+      const selectedPlanData = plans.find((p) => p.id === selectedPlan);
       const isFreePlan = selectedPlanData?.price === '0';
 
       // If payment is required, open Razorpay checkout
@@ -125,7 +125,6 @@ export default function ChoosePlanPage() {
         router.push('/auth/welcome');
         return;
       }
-
     } catch (err: any) {
       setError(err.message || 'Error submitting plan');
     } finally {
@@ -288,5 +287,19 @@ export default function ChoosePlanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ChoosePlanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-screen">
+          Loading...
+        </div>
+      }
+    >
+      <ChoosePlanPageInner />
+    </Suspense>
   );
 }

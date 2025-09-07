@@ -1,29 +1,32 @@
-"use client";
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+'use client';
+import { useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const [form, setForm] = useState({ emailOrUsername: "", password: "" });
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({ emailOrUsername: '', password: '' });
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); 
+    setError('');
     setLoading(true);
-    const res = await signIn("credentials", {
+    const res = await signIn('credentials', {
       ...form,
       redirect: false,
+      ...(rememberMe && { maxAge: 30 * 24 * 60 * 60 }), // 30 days if remember me is checked
     });
     setLoading(false);
     if (res?.error) setError(res.error);
-    else router.push("/dashboard");
+    else router.push('/dashboard');
   };
 
   return (
@@ -42,7 +45,7 @@ export default function LoginPage() {
           backdrop-blur-md
         "
       >
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
@@ -91,7 +94,7 @@ export default function LoginPage() {
           </p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
@@ -128,13 +131,23 @@ export default function LoginPage() {
               transition-all
             "
           />
+          <label className="flex items-center gap-2 text-[var(--foreground)]">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={loading}
+              className="accent-[var(--primary)]"
+            />
+            Remember Me
+          </label>
         </motion.div>
 
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          type="submit" 
+          type="submit"
           disabled={loading}
           className="
             mt-2 py-3 rounded-xl font-semibold text-lg
@@ -146,14 +159,28 @@ export default function LoginPage() {
             disabled:opacity-60
           "
         >
-          {loading ? "Signing In..." : "Sign In"}
+          {loading ? 'Signing In...' : 'Sign In'}
         </motion.button>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="text-center"
+        >
+          <Link
+            href="/auth/forgot-password"
+            className="text-[var(--primary)] hover:underline"
+          >
+            Forgot Password?
+          </Link>
+        </motion.div>
 
         <AnimatePresence>
           {error && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="text-[var(--destructive)] text-center font-medium"
             >

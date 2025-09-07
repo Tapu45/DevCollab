@@ -20,8 +20,24 @@ const templates = [
     priority: NotificationPriority.NORMAL,
     category: NotificationCategory.CONNECTION,
   },
-  
-  // ... more templates
+  {
+    type: NotificationType.CONNECTION_DECLINED,
+    title: 'Connection Declined',
+    message: '{{declinerName}} declined your connection request',
+    actionUrl: '/connections',
+    actionText: 'View Connections',
+    priority: NotificationPriority.NORMAL,
+    category: NotificationCategory.CONNECTION,
+  },
+  {
+    type: NotificationType.MESSAGE_RECEIVED,
+    title: 'New Message in {{chatName}}',
+    message: '{{senderName}}: {{messagePreview}}',
+    actionUrl: '/messages',
+    actionText: 'Open Chat',
+    priority: NotificationPriority.NORMAL,
+    category: NotificationCategory.MESSAGE,
+  },
 ];
 
 export async function seedNotificationTemplates() {

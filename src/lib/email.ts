@@ -44,8 +44,7 @@ export async function sendVerificationEmail(email: string, otp: string) {
 }
 
 
-export async function sendPasswordResetEmail(email: string, token: string) {
-  const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;
+export async function sendPasswordResetEmail(email: string, otp: string) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -62,12 +61,12 @@ export async function sendPasswordResetEmail(email: string, token: string) {
       <div style="padding: 32px;">
         <p style="font-size: 16px; color: #334155;">Hi,</p>
         <p style="font-size: 16px; color: #334155;">
-          Click the button below to reset your password. This link will expire in 1 hour.
+          Use the following One-Time Password (OTP) to reset your password. This OTP will expire in 10 minutes.
         </p>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="${resetUrl}" style="background: #2563eb; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">
-            Reset Password
-          </a>
+          <span style="background: #2563eb; color: #fff; padding: 14px 32px; border-radius: 6px; font-size: 24px; font-weight: bold; letter-spacing: 4px; display: inline-block;">
+            ${otp}
+          </span>
         </div>
         <p style="font-size: 14px; color: #64748b;">
           If you did not request this, you can safely ignore this email.
@@ -82,7 +81,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: email,
-    subject: 'Reset your password - DevCollab',
+    subject: 'Your Password Reset OTP - DevCollab',
     html,
   });
 }
