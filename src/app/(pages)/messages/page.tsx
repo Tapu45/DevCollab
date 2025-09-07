@@ -30,6 +30,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Chat, Message } from '@/types/Message';
 import ChatListItem from './minicomponents/ChatListItem';
 import MessageBubble from './minicomponents/MessageBubble';
+import { usePusherEvent } from '@/hooks/Pusher'; // <-- Added import for Pusher
+import ChatWindow from './minicomponents/ChattingWindow';
 
 const fetchChats = async (): Promise<{ chats: Chat[] }> => {
   const response = await fetch('/api/messaging/chats');
@@ -95,7 +97,7 @@ export default function MessagesPage() {
   } = useQuery({
     queryKey: ['chats'],
     queryFn: fetchChats,
-    refetchInterval: 30000,
+    refetchInterval: 30000, // <-- Kept for chats (can be removed if Pusher events are added for chats)
   });
   const chats = data?.chats || [];
 
@@ -121,7 +123,7 @@ export default function MessagesPage() {
     queryFn: () =>
       selectedChatId ? fetchMessages(selectedChatId) : Promise.resolve([]),
     enabled: !!selectedChatId,
-    refetchInterval: 5000,
+    // refetchInterval: 5000, // <-- Removed to stop polling
   });
 
   // NEW: Auto-scroll to bottom when messages change (moved to top with other hooks)
@@ -139,6 +141,38 @@ export default function MessagesPage() {
     }
   }, [messages]);
 
+  // NEW: Subscribe to Pusher for real-time messages
+  usePusherEvent({
+    channelName: selectedChatId ? `chat-${selectedChatId}` : '',
+    eventName: 'message_received',
+    callback: (data: {
+      messageId: string;
+      chatId: string;
+      senderId: string;
+      content: string;
+      type: string;
+      createdAt: string;
+    }) => {
+      if (!selectedChatId || data.chatId !== selectedChatId) return;
+
+      // Check if message already exists (e.g., from optimistic update)
+      const existingMessages = queryClient.getQueryData<Message[]>([
+        'messages',
+        selectedChatId,
+      ]);
+      if (existingMessages?.some((msg) => msg.id === data.messageId)) return;
+
+      // Fetch the full message details (since Pusher payload is minimal)
+      // Alternatively, adjust backend to send full message in Pusher event
+      fetchMessages(selectedChatId).then((updatedMessages) => {
+        queryClient.setQueryData(['messages', selectedChatId], updatedMessages);
+      });
+
+      // Invalidate chats to update last message
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+
   // Mutations
   const sendMessageMutation = useMutation({
     mutationFn: ({
@@ -151,9 +185,9 @@ export default function MessagesPage() {
       type: string;
     }) => sendMessage(chatId, content, type),
     onMutate: async ({ chatId, content, type }) => {
-       if (!user) {
-         throw new Error('User not available for sending message');
-       }
+      if (!user) {
+        throw new Error('User not available for sending message');
+      }
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['messages', chatId] });
 
@@ -435,204 +469,24 @@ export default function MessagesPage() {
         </div>
 
         {/* Chat Window - keep your existing implementation */}
-        <div className="flex-1 flex flex-col h-[84vh]">
-          {selectedChat ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={
-                          selectedChat.avatarUrl ||
-                          selectedChat.participants[0]?.profilePictureUrl ||
-                          ''
-                        }
-                        alt={
-                          selectedChat.name ||
-                          selectedChat.participants[0]?.displayName ||
-                          ''
-                        }
-                      />
-                      <AvatarFallback>
-                        {selectedChat.name?.charAt(0) ||
-                          selectedChat.participants[0]?.displayName?.charAt(
-                            0,
-                          ) ||
-                          '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h2 className="font-semibold text-foreground">
-                        {selectedChat.name ||
-                          selectedChat.participants[0]?.displayName ||
-                          selectedChat.participants[0]?.username}
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedChat.participants[0]?.isOnline
-                          ? 'Online'
-                          : 'Last seen recently'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* Add MessageSearch for the specific chat */}
-                    <MessageSearch
-                      onMessageSelect={handleMessageSelect}
-                      defaultChatId={selectedChatId || undefined}
-                    />
-                    <Button size="sm" variant="ghost">
-                      <Phone className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost">
-                      <Video className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost">
-                      <Info className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <ScrollArea className="flex-1 p-4 h-full max-h-full">
-                  <div ref={scrollAreaRef} className="space-y-4">
-                    {loadingMessages ? (
-                      <div className="flex justify-center items-center h-32">
-                        <Loader />
-                      </div>
-                    ) : (
-                      <AnimatePresence>
-                        {groupMessages(messages).map((group, groupIdx) => {
-                          const isOwn = group.senderId === currentUserId;
-                          return (
-                            <div
-                              key={groupIdx}
-                              className={`flex ${isOwn ? 'justify-end' : ''}`}
-                            >
-                              {/* Avatar spacer for alignment (only for others, not own messages) */}
-                              {!isOwn && (
-                                <div className="w-10 flex flex-col items-end">
-                                  {/* Only show avatar for the first message in group */}
-                                  <div
-                                    className={
-                                      group.messages.length > 0
-                                        ? 'h-8 mt-1'
-                                        : ''
-                                    }
-                                  >
-                                    {/* Empty div just for spacing */}
-                                  </div>
-                                </div>
-                              )}
-                              {/* Message bubbles */}
-                              <div className="flex flex-col gap-1 flex-1">
-                                {group.messages.map((message, idx) => (
-                                  <MessageBubble
-                                    key={`${message.id}-${idx}`} // <-- More stable key
-                                    message={message}
-                                    isOwn={isOwn}
-                                    showAvatar={!isOwn && idx === 0}
-                                    isGrouped={group.messages.length > 1}
-                                    isFirst={idx === 0}
-                                    isLast={idx === group.messages.length - 1}
-                                    isSending={message.isSending}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </AnimatePresence>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-
-              {/* Message Input - keep your existing implementation */}
-              <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-3">
-                  {/* Left icons */}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="rounded-full"
-                    onClick={() => setShowFilePicker(!showFilePicker)}
-                  >
-                    <Paperclip className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="rounded-full"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  >
-                    <Smile className="w-5 h-5" />
-                  </Button>
-
-                  {/* Message input */}
-                  <div className="flex-1 relative">
-                    <textarea
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Type a message..."
-                      className="w-full min-h-[44px] max-h-32 px-4 py-3 border border-input rounded-full bg-background focus:ring-2 focus:ring-ring focus:border-transparent resize-none transition"
-                      rows={1}
-                    />
-                  </div>
-
-                  {/* Mic and Send buttons */}
-                  {isRecording ? (
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="rounded-full"
-                      onClick={() => setIsRecording(false)}
-                    >
-                      <MicOff className="w-5 h-5" />
-                    </Button>
-                  ) : (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="rounded-full"
-                      onClick={() => setIsRecording(true)}
-                    >
-                      <Mic className="w-5 h-5" />
-                    </Button>
-                  )}
-
-                  <Button
-                    size="icon"
-                    className="rounded-full bg-primary text-white hover:bg-primary/90 transition"
-                    onClick={handleSendMessage}
-                    disabled={
-                      !newMessage.trim() || sendMessageMutation.isPending
-                    }
-                  >
-                    <Send className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  Select a conversation
-                </h3>
-                <p className="text-muted-foreground">
-                  Choose a chat to start messaging
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+        <ChatWindow
+          selectedChat={selectedChat}
+          messages={messages}
+          loadingMessages={loadingMessages}
+          currentUserId={currentUserId}
+          newMessage={newMessage}
+          setNewMessage={setNewMessage}
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
+          showEmojiPicker={showEmojiPicker}
+          setShowEmojiPicker={setShowEmojiPicker}
+          showFilePicker={showFilePicker}
+          setShowFilePicker={setShowFilePicker}
+          handleSendMessage={handleSendMessage}
+          handleKeyPress={handleKeyPress}
+          handleMessageSelect={handleMessageSelect}
+          selectedChatId={selectedChatId}
+        />
       </div>
     </div>
   );
