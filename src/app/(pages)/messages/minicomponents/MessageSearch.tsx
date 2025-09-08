@@ -71,13 +71,13 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filters
-  const [filters, setFilters] = useState({
-    chatId: defaultChatId || '',
-    type: 'all',
-    dateFrom: null as Date | null,
-    dateTo: null as Date | null,
-    senderId: ''
-  });
+ const [filters, setFilters] = useState({
+   chatId: 'all',
+   type: 'all',
+   dateFrom: null as Date | null,
+   dateTo: null as Date | null,
+   senderId: '',
+ });
 
   // Available chats for filter - Initialize as empty array
   const [availableChats, setAvailableChats] = useState<Array<{
@@ -239,7 +239,7 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
           Search Messages
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Search Messages</DialogTitle>
@@ -262,25 +262,30 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
             {/* Chat Filter */}
             <Select
               value={filters.chatId}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, chatId: value }))}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, chatId: value }))
+              }
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="All chats" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All chats</SelectItem>
-                {Array.isArray(availableChats) && availableChats.map((chat) => (
-                  <SelectItem key={chat.id} value={chat.id}>
-                    {getChatDisplayName(chat)}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All chats</SelectItem>
+                {Array.isArray(availableChats) &&
+                  availableChats.map((chat) => (
+                    <SelectItem key={chat.id} value={chat.id}>
+                      {getChatDisplayName(chat)}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 
             {/* Type Filter */}
             <Select
               value={filters.type}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, type: value }))
+              }
             >
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -299,14 +304,18 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
                   <CalendarIcon className="h-4 w-4 mr-2" />
-                  {filters.dateFrom ? format(filters.dateFrom, 'MMM dd') : 'From date'}
+                  {filters.dateFrom
+                    ? format(filters.dateFrom, 'MMM dd')
+                    : 'From date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
                   selected={filters.dateFrom || undefined}
-                  onSelect={(date) => setFilters(prev => ({ ...prev, dateFrom: date || null }))}
+                  onSelect={(date) =>
+                    setFilters((prev) => ({ ...prev, dateFrom: date || null }))
+                  }
                 />
               </PopoverContent>
             </Popover>
@@ -316,20 +325,28 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
                   <CalendarIcon className="h-4 w-4 mr-2" />
-                  {filters.dateTo ? format(filters.dateTo, 'MMM dd') : 'To date'}
+                  {filters.dateTo
+                    ? format(filters.dateTo, 'MMM dd')
+                    : 'To date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
                   selected={filters.dateTo || undefined}
-                  onSelect={(date) => setFilters(prev => ({ ...prev, dateTo: date || null }))}
+                  onSelect={(date) =>
+                    setFilters((prev) => ({ ...prev, dateTo: date || null }))
+                  }
                 />
               </PopoverContent>
             </Popover>
 
             {/* Clear Filters */}
-            {(filters.chatId || filters.type !== 'all' || filters.dateFrom || filters.dateTo || filters.senderId) && (
+            {(filters.chatId ||
+              filters.type !== 'all' ||
+              filters.dateFrom ||
+              filters.dateTo ||
+              filters.senderId) && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-4 w-4 mr-1" />
                 Clear
@@ -342,7 +359,9 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
             {searchQuery && (
               <div className="mb-4">
                 <p className="text-sm text-muted-foreground">
-                  {loading ? 'Searching...' : `Found ${totalCount} result(s) for "${searchQuery}"`}
+                  {loading
+                    ? 'Searching...'
+                    : `Found ${totalCount} result(s) for "${searchQuery}"`}
                 </p>
               </div>
             )}
@@ -360,16 +379,20 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarImage src={message.sender.profilePictureUrl || undefined} />
+                        <AvatarImage
+                          src={message.sender.profilePictureUrl || undefined}
+                        />
                         <AvatarFallback>
-                          {message.sender.displayName?.[0] || message.sender.username[0]}
+                          {message.sender.displayName?.[0] ||
+                            message.sender.username[0]}
                         </AvatarFallback>
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-sm">
-                            {message.sender.displayName || message.sender.username}
+                            {message.sender.displayName ||
+                              message.sender.username}
                           </span>
                           <Badge variant="secondary" className="text-xs">
                             {getChatDisplayName(message.chat)}
@@ -377,15 +400,20 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
                           <div className="flex items-center gap-1 text-muted-foreground">
                             {getMessageTypeIcon(message.type)}
                             <span className="text-xs">
-                              {format(new Date(message.createdAt), 'MMM dd, HH:mm')}
+                              {format(
+                                new Date(message.createdAt),
+                                'MMM dd, HH:mm',
+                              )}
                             </span>
                           </div>
                         </div>
 
                         {message.replyTo && (
                           <div className="text-xs text-muted-foreground mb-1 pl-2 border-l-2 border-muted">
-                            Replying to {message.replyTo.sender.displayName || message.replyTo.sender.username}:{' '}
-                            {message.replyTo.content.substring(0, 50)}...
+                            Replying to{' '}
+                            {message.replyTo.sender.displayName ||
+                              message.replyTo.sender.username}
+                            : {message.replyTo.content.substring(0, 50)}...
                           </div>
                         )}
 
@@ -396,7 +424,11 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
                         {message.reactions.length > 0 && (
                           <div className="flex gap-1 mt-2">
                             {message.reactions.map((reaction) => (
-                              <Badge key={reaction.id} variant="outline" className="text-xs">
+                              <Badge
+                                key={reaction.id}
+                                variant="outline"
+                                className="text-xs"
+                              >
                                 {reaction.emoji}
                               </Badge>
                             ))}
@@ -411,7 +443,11 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
               {/* Load More */}
               {hasMore && (
                 <div className="text-center py-4">
-                  <Button variant="outline" onClick={loadMore} disabled={loading}>
+                  <Button
+                    variant="outline"
+                    onClick={loadMore}
+                    disabled={loading}
+                  >
                     {loading ? 'Loading...' : 'Load More'}
                   </Button>
                 </div>
@@ -422,7 +458,9 @@ export default function MessageSearch({ onMessageSelect, defaultChatId }: Messag
                 <div className="text-center py-8 text-muted-foreground">
                   <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>No messages found</p>
-                  <p className="text-sm">Try adjusting your search terms or filters</p>
+                  <p className="text-sm">
+                    Try adjusting your search terms or filters
+                  </p>
                 </div>
               )}
             </div>

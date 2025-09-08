@@ -137,7 +137,11 @@ export class NotificationService {
         userId,
         ...(unreadOnly && { isRead: false }),
         ...(category && { category }),
-        expiresAt: { gt: new Date() },
+        // include notifications that have no expiration OR not expired
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
       },
       include: {
         sender: {
@@ -204,7 +208,11 @@ export class NotificationService {
         userId,
         isRead: false,
         ...(category && { category }),
-        expiresAt: { gt: new Date() },
+        // include notifications without expiresAt or with expiresAt in future
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
       },
     });
   }

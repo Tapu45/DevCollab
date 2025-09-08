@@ -64,7 +64,7 @@ interface Notification {
     displayName?: string;
     profilePictureUrl?: string;
   };
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 interface NotificationFilters {
@@ -92,7 +92,7 @@ const fetchNotifications = async (filters: NotificationFilters = {}): Promise<{
 };
 
 const markNotificationAsRead = async (notificationId: string): Promise<void> => {
-  const response = await fetch('/api/notifications', {
+  const response = await fetch('/api/notification', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'markAsRead', notificationId }),
@@ -101,7 +101,7 @@ const markNotificationAsRead = async (notificationId: string): Promise<void> => 
 };
 
 const markAllAsRead = async (category?: NotificationCategory): Promise<void> => {
-  const response = await fetch('/api/notifications', {
+  const response = await fetch('/api/notification', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'markAllAsRead', category }),
@@ -110,7 +110,7 @@ const markAllAsRead = async (category?: NotificationCategory): Promise<void> => 
 };
 
 const deleteNotification = async (notificationId: string): Promise<void> => {
-  const response = await fetch(`/api/notifications/${notificationId}`, {
+  const response = await fetch(`/api/notification/${notificationId}`, {
     method: 'DELETE',
   });
   if (!response.ok) throw new Error('Failed to delete notification');
@@ -184,15 +184,19 @@ const getCategoryColor = (category: NotificationCategory) => {
   }
 };
 
-const formatTimeAgo = (date: Date) => {
+const formatTimeAgo = (date: Date | string) => {
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (!d || Number.isNaN(d.getTime())) return 'Unknown';
+
+  const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+
   if (diffInSeconds < 60) return 'Just now';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  return date.toLocaleDateString();
+  if (diffInSeconds < 2592000)
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  return d.toLocaleDateString();
 };
 
 // Main Component

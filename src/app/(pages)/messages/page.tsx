@@ -261,18 +261,18 @@ export default function MessagesPage() {
   });
 
   // Handlers
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChatId) return;
+   const handleSendMessage = (attachmentUrl?: string) => {
+     if ((!newMessage.trim() && !attachmentUrl) || !selectedChatId) return;
 
-    sendMessageMutation.mutate({
-      chatId: selectedChatId,
-      content: newMessage.trim(),
-      type: 'TEXT',
-    });
+     sendMessageMutation.mutate({
+       chatId: selectedChatId,
+       content: newMessage.trim() || attachmentUrl || '', // Use attachment URL if no text
+       type: attachmentUrl ? 'IMAGE' : 'TEXT', // Adjust type based on attachment
+     });
 
-    // Clear input instantly
-    setNewMessage('');
-  };
+     // Clear input instantly
+     setNewMessage('');
+   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

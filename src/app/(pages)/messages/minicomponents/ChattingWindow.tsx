@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef, useLayoutEffect } from 'react'; // <-- Changed useEffect to useLayoutEffect
-import { motion, AnimatePresence } from 'framer-motion';
+import { useRef, useLayoutEffect, useState } from 'react'; 
+import { AnimatePresence } from 'framer-motion';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 import {
   MessageCircle,
   Phone,
@@ -21,6 +23,8 @@ import { Chat, Message } from '@/types/Message';
 import MessageSearch from './MessageSearch';
 import MessageBubble from './MessageBubble';
 import React from 'react';
+import { usePusherEvent } from '@/hooks/Pusher';
+import { pusherClient } from '@/utils/Pusher';
 
 interface ChatWindowProps {
   selectedChat: Chat | undefined;
@@ -35,7 +39,7 @@ interface ChatWindowProps {
   setShowEmojiPicker: (value: boolean) => void;
   showFilePicker: boolean;
   setShowFilePicker: (value: boolean) => void;
-  handleSendMessage: () => void;
+  handleSendMessage: (attachmentUrl?: string) => void;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   handleMessageSelect: (messageId: string, chatId: string) => void;
   selectedChatId: string | null;
@@ -60,18 +64,44 @@ export default function ChatWindow({
   selectedChatId,
 }: ChatWindowProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null); 
+  const [isSomeoneTyping, setIsSomeoneTyping] = useState(false);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll to bottom when messages change or chat is selected
   useLayoutEffect(() => {
     if (messages.length > 0) {
-      const viewport = scrollAreaRef.current?.querySelector(
-        '[data-radix-scroll-area-viewport]',
-      ) as HTMLElement;
+      const root = scrollAreaRef.current?.closest(
+        '[data-slot="scroll-area"]',
+      ) as HTMLElement | null;
+      const viewport = root?.querySelector(
+        '[data-slot="scroll-area-viewport"]',
+      ) as HTMLElement | null;
+
       if (viewport) {
         viewport.scrollTop = viewport.scrollHeight;
       }
     }
-  }, [messages, selectedChatId]); // <-- Added selectedChatId to dependencies for initial scroll
+  }, [messages, selectedChatId]);
+
+  usePusherEvent({
+    channelName: selectedChatId ? `chat-${selectedChatId}` : '',
+    eventName: 'typing',
+    callback: (data: { userId: string }) => {
+      if (data.userId !== currentUserId) setIsSomeoneTyping(true);
+    },
+  });
+  usePusherEvent({
+    channelName: selectedChatId ? `chat-${selectedChatId}` : '',
+    eventName: 'stop_typing',
+    callback: (data: { userId: string }) => {
+      if (data.userId !== currentUserId) setIsSomeoneTyping(false);
+    },
+  });
 
   function groupMessages(messages: Message[]) {
     const groups: { senderId: string; messages: Message[] }[] = [];
@@ -88,6 +118,103 @@ export default function ChatWindow({
     if (currentGroup) groups.push(currentGroup);
     return groups;
   }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setUploadError(null);
+    setImageUrl(null); // Clear any previous URL
+
+    if (!file) return;
+
+    // Only allow image files
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Only image files are allowed.');
+      setSelectedFile(null);
+      return;
+    }
+
+    // Only allow files up to 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('File size must be less than 2MB.');
+      setSelectedFile(null);
+      return;
+    }
+
+    setSelectedFile(file);
+    setShowFilePicker(false);
+    // Create preview URL
+    setImageUrl(URL.createObjectURL(file));
+  }
+
+  async function handleSendMessageWithUpload() {
+    if (!selectedFile && !newMessage.trim()) return;
+
+    if (selectedFile) {
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await res.json();
+
+        if (!res.ok || !result.success) {
+          throw new Error(result.error || 'Upload failed');
+        }
+
+        // Send message with attachment URL
+        handleSendMessage(result.data.secure_url);
+
+        // Clear after send
+        setSelectedFile(null);
+        setImageUrl(null);
+        setNewMessage('');
+      } catch (err: any) {
+        setUploadError(err.message || 'Upload failed');
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      // No file, just send text message
+      handleSendMessage();
+      setNewMessage('');
+    }
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setNewMessage(e.target.value);
+
+    if (selectedChatId && currentUserId) {
+      fetch('/api/messaging/messages/typing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: `chat-${selectedChatId}`,
+          event: 'typing',
+          data: { userId: currentUserId },
+        }),
+      });
+
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+      typingTimeout.current = setTimeout(() => {
+        fetch('/api/messaging/messages/typing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channel: `chat-${selectedChatId}`,
+            event: 'stop_typing',
+            data: { userId: currentUserId },
+          }),
+        });
+      }, 1000);
+    }
+  }
+
+  
 
   return (
     <div className="flex-1 flex flex-col h-[84vh]">
@@ -127,6 +254,11 @@ export default function ChatWindow({
                       ? 'Online'
                       : 'Last seen recently'}
                   </p>
+                  {isSomeoneTyping && (
+                    <span className="text-xs text-primary animate-pulse">
+                      Typing...
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -200,19 +332,60 @@ export default function ChatWindow({
           {/* Message Input */}
           <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-3">
+              {/* Attachment Button */}
               <Button
                 size="icon"
                 variant="ghost"
                 className="rounded-full"
-                onClick={() => setShowFilePicker(!showFilePicker)}
+                onClick={() => {
+                  setShowFilePicker(!showFilePicker);
+                  fileInputRef.current?.click();
+                }}
+                disabled={uploading}
               >
                 <Paperclip className="w-5 h-5" />
               </Button>
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                accept="image/*"
+                disabled={uploading}
+              />
+              {/* Show file preview if selected */}
+              {imageUrl && (
+                <div className="ml-2 flex items-center gap-2">
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="w-10 h-10 object-cover rounded"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setImageUrl(null);
+                    }}
+                    disabled={uploading}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
+              {/* Show upload error */}
+              {uploadError && (
+                <span className="text-xs text-red-500 ml-2">{uploadError}</span>
+              )}
+              {/* Emoji Button */}
               <Button
                 size="icon"
                 variant="ghost"
                 className="rounded-full"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                disabled={uploading}
               >
                 <Smile className="w-5 h-5" />
               </Button>
@@ -220,12 +393,32 @@ export default function ChatWindow({
               <div className="flex-1 relative">
                 <textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
                   className="w-full min-h-[44px] max-h-32 px-4 py-3 border border-input rounded-full bg-background focus:ring-2 focus:ring-ring focus:border-transparent resize-none transition"
                   rows={1}
+                  disabled={uploading}
                 />
+                {showEmojiPicker && (
+                  <div className="absolute bottom-16 left-0 z-20">
+                    <div
+                      style={{ height: 300, width: 350, overflow: 'hidden' }}
+                    >
+                      <Picker
+                        data={data}
+                        onEmojiSelect={(emoji: any) => {
+                          setNewMessage(newMessage + emoji.native);
+                          setShowEmojiPicker(false);
+                        }}
+                        theme="auto"
+                        previewPosition="none"
+                        searchPosition="none"
+                        perLine={8}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {isRecording ? (
@@ -234,6 +427,7 @@ export default function ChatWindow({
                   variant="destructive"
                   className="rounded-full"
                   onClick={() => setIsRecording(false)}
+                  disabled={uploading}
                 >
                   <MicOff className="w-5 h-5" />
                 </Button>
@@ -243,6 +437,7 @@ export default function ChatWindow({
                   variant="ghost"
                   className="rounded-full"
                   onClick={() => setIsRecording(true)}
+                  disabled={uploading}
                 >
                   <Mic className="w-5 h-5" />
                 </Button>
@@ -251,8 +446,8 @@ export default function ChatWindow({
               <Button
                 size="icon"
                 className="rounded-full bg-primary text-white hover:bg-primary/90 transition"
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim()}
+                onClick={handleSendMessageWithUpload}
+                disabled={(!newMessage.trim() && !selectedFile) || uploading}
               >
                 <Send className="w-5 h-5" />
               </Button>

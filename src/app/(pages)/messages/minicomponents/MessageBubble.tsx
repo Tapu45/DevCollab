@@ -111,7 +111,23 @@ export default function MessageBubble({
           )}
 
           {/* Message Content */}
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          {message.type === 'IMAGE' ? (
+            <a
+              href={message.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <img
+                src={message.content}
+                alt="Sent image"
+                className="max-w-xs max-h-64 rounded-lg border border-border"
+                style={{ objectFit: 'cover' }}
+              />
+            </a>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          )}
 
           {/* Message Status */}
           <div className="flex items-center gap-1 mt-1">

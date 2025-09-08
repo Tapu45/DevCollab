@@ -16,6 +16,8 @@
     "user:seed": "node --loader ts-node/esm prisma/seed/Userseed.ts"
   },
   "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@emoji-mart/react": "^1.1.1",
     "@hookform/resolvers": "^5.2.1",
     "@lottiefiles/dotlottie-react": "^0.15.1",
     "@next-auth/prisma-adapter": "^1.0.7",
@@ -60,6 +62,7 @@
     "csv-parse": "^6.1.0",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "emoji-mart": "^5.6.0",
     "framer-motion": "^12.23.12",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.536.0",

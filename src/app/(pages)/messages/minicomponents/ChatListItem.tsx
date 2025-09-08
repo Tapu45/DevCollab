@@ -128,7 +128,25 @@ export default function ChatListItem({
                   <span className="font-medium">
                     {chat.lastMessage.senderName}:
                   </span>{' '}
-                  {chat.lastMessage.content}
+                  {chat.lastMessage.type === 'IMAGE' ||
+                  (typeof chat.lastMessage.content === 'string' &&
+                    chat.lastMessage.content.match(
+                      /\.(jpeg|jpg|gif|png|webp)$/i,
+                    )) ? (
+                    <span>
+                      <img
+                        src={chat.lastMessage.content}
+                        alt="Image"
+                        className="inline-block max-h-8 max-w-[64px] rounded border border-border align-middle"
+                        style={{ verticalAlign: 'middle' }}
+                      />
+                      <span className="ml-2 text-xs text-muted-foreground align-middle">
+                        Photo
+                      </span>
+                    </span>
+                  ) : (
+                    chat.lastMessage.content
+                  )}
                 </>
               ) : (
                 'No messages yet'
