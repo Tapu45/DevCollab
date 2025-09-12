@@ -7,6 +7,7 @@ import GitlabProvider from 'next-auth/providers/gitlab';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { PrismaClient } from '../../../../generated/prisma';
 import bcrypt from 'bcryptjs';
+import { generateUserSuggestions } from '@/trigger/generateUserSuggestions';
 
 const prisma = new PrismaClient();
 
@@ -83,6 +84,13 @@ export const authOptions = {
             return session;
         },
     },
+    events: {
+        async signIn({ user }: { user: any }) {
+            // Fire-and-forget; do not await to avoid slowing down login
+            generateUserSuggestions.trigger({ userId: user.id }).catch(() => { });
+        },
+    },
+
 };
 
 const handler = NextAuth(authOptions);

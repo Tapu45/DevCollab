@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/Prisma';
 
+
+
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -13,9 +15,9 @@ export async function GET(request: NextRequest) {
         }
 
         const userId = session.user.id;
-      
-        // Check cache ONCE
-        const cache = await prisma.userSuggestionCache.findUnique({ where: { userId } });
+
+        // Check cache ONCE (using the new model)
+        const cache = await prisma.userSimilarCache.findUnique({ where: { userId } });
         const now = new Date();
         if (cache && (now.getTime() - new Date(cache.updatedAt).getTime()) < 24 * 60 * 60 * 1000) {
             const cacheDataObj = typeof cache.data === 'string' ? JSON.parse(cache.data) : cache.data;
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Generate new data if cache is missing/expired
-          const { searchParams } = new URL(request.url);
+        const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '9');
         const location = searchParams.get('location') || undefined;
         const experienceLevel = searchParams.get('experienceLevel') || undefined;
@@ -69,10 +71,10 @@ export async function GET(request: NextRequest) {
             total: enhancedUsers.length
         };
 
-        // Update cache
-        await prisma.userSuggestionCache.upsert({
+        // Update cache (using the new model)
+        await prisma.userSimilarCache.upsert({
             where: { userId },
-            update: { data: responseData },
+            update: { data: responseData, updatedAt: now },
             create: { userId, data: responseData }
         });
 
@@ -86,3 +88,4 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+

@@ -68,9 +68,18 @@ export default function ChatWindow({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null); 
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isSomeoneTyping, setIsSomeoneTyping] = useState(false);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [userPresence, setUserPresence] = useState<{
+    isOnline: boolean;
+    lastSeen: string | null;
+  }>({
+    isOnline: !!selectedChat?.participants[0]?.isOnline,
+    lastSeen: selectedChat?.participants[0]?.lastSeen || null,
+  });
+
+  // ...existing code...
 
   // Auto-scroll to bottom when messages change or chat is selected
   useLayoutEffect(() => {
@@ -102,6 +111,28 @@ export default function ChatWindow({
       if (data.userId !== currentUserId) setIsSomeoneTyping(false);
     },
   });
+
+  usePusherEvent({
+    channelName: selectedChat?.participants[0]?.id
+      ? `user-${selectedChat.participants[0].id}`
+      : '',
+    eventName: 'user_presence',
+    callback: (data: { isOnline: boolean; lastSeen: string }) => {
+      setUserPresence({ isOnline: data.isOnline, lastSeen: data.lastSeen });
+    },
+  });
+
+
+function formatLastSeen(lastSeen: string) {
+  const date = new Date(lastSeen);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
+  return date.toLocaleString();
+}
 
   function groupMessages(messages: Message[]) {
     const groups: { senderId: string; messages: Message[] }[] = [];
@@ -214,8 +245,6 @@ export default function ChatWindow({
     }
   }
 
-  
-
   return (
     <div className="flex-1 flex flex-col h-[84vh]">
       {selectedChat ? (
@@ -250,9 +279,11 @@ export default function ChatWindow({
                       selectedChat.participants[0]?.username}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {selectedChat.participants[0]?.isOnline
+                    {userPresence.isOnline
                       ? 'Online'
-                      : 'Last seen recently'}
+                      : userPresence.lastSeen
+                        ? `Last seen ${formatLastSeen(userPresence.lastSeen)}`
+                        : 'Last seen recently'}
                   </p>
                   {isSomeoneTyping && (
                     <span className="text-xs text-primary animate-pulse">

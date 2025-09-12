@@ -35,7 +35,7 @@ const settingsCategories = [
     href: '/settings/profile',
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
     iconColor: 'text-blue-600',
-    features: ['Display name', 'Bio', 'Profile picture', 'Contact info']
+    features: ['Display name', 'Bio', 'Profile picture', 'Contact info'],
   },
   {
     id: 'privacy',
@@ -45,7 +45,11 @@ const settingsCategories = [
     href: '/settings/privacy',
     color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     iconColor: 'text-green-600',
-    features: ['Profile visibility', 'Connection privacy', 'Message permissions']
+    features: [
+      'Profile visibility',
+      'Connection privacy',
+      'Message permissions',
+    ],
   },
   {
     id: 'notifications',
@@ -53,9 +57,10 @@ const settingsCategories = [
     description: 'Customize how and when you receive notifications',
     icon: Bell,
     href: '/settings/notifications',
-    color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    color:
+      'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
     iconColor: 'text-purple-600',
-    features: ['Email notifications', 'Push notifications', 'Quiet hours']
+    features: ['Email notifications', 'Push notifications', 'Quiet hours'],
   },
   {
     id: 'chat',
@@ -63,9 +68,10 @@ const settingsCategories = [
     description: 'Configure your messaging preferences and chat settings',
     icon: MessageCircle,
     href: '/settings/chat',
-    color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+    color:
+      'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
     iconColor: 'text-orange-600',
-    features: ['Message permissions', 'Chat settings', 'File sharing']
+    features: ['Message permissions', 'Chat settings', 'File sharing'],
   },
   {
     id: 'connections',
@@ -73,9 +79,10 @@ const settingsCategories = [
     description: 'Manage your network and connection preferences',
     icon: Users,
     href: '/settings/connections',
-    color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+    color:
+      'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     iconColor: 'text-indigo-600',
-    features: ['Connection requests', 'Network visibility', 'Blocked users']
+    features: ['Connection requests', 'Network visibility', 'Blocked users'],
   },
   {
     id: 'appearance',
@@ -85,7 +92,7 @@ const settingsCategories = [
     href: '/settings/appearance',
     color: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
     iconColor: 'text-pink-600',
-    features: ['Theme', 'Language', 'Display preferences']
+    features: ['Theme', 'Language', 'Display preferences'],
   },
   {
     id: 'account',
@@ -95,8 +102,24 @@ const settingsCategories = [
     href: '/settings/account',
     color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     iconColor: 'text-red-600',
-    features: ['Password', 'Two-factor auth', 'Data export', 'Account deletion']
-  }
+    features: [
+      'Password',
+      'Two-factor auth',
+      'Data export',
+      'Account deletion',
+    ],
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    description:
+      'Connect your GitHub, GitLab, LinkedIn, LeetCode, Behance, etc.',
+    icon: Key,
+    href: '/settings/integrations',
+    color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+    iconColor: 'text-amber-600',
+    features: ['Link accounts', 'Manage API access', 'External profiles'],
+  },
 ];
 
 export default function SettingsPage() {

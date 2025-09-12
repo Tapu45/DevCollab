@@ -19,27 +19,30 @@ export default function SignupPage() {
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
     null,
   );
+  const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
   const { setSignupCredentials } = useSignupContext();
 
   const calculatePasswordStrength = (password: string) => {
     if (!password) return { score: 0, label: '', color: '' };
-    
+
     let score = 0;
     const feedback = [];
-    
+
     if (password.length >= 8) score += 1;
     if (/[a-z]/.test(password)) score += 1;
     if (/[A-Z]/.test(password)) score += 1;
     if (/[0-9]/.test(password)) score += 1;
     if (/[^A-Za-z0-9]/.test(password)) score += 1;
-    
-    if (score === 0) return { score: 0, label: 'Very Weak', color: 'bg-red-500' };
+
+    if (score === 0)
+      return { score: 0, label: 'Very Weak', color: 'bg-red-500' };
     if (score === 1) return { score: 1, label: 'Weak', color: 'bg-orange-500' };
     if (score === 2) return { score: 2, label: 'Fair', color: 'bg-yellow-500' };
     if (score === 3) return { score: 3, label: 'Good', color: 'bg-blue-500' };
-    if (score === 4) return { score: 4, label: 'Strong', color: 'bg-green-500' };
+    if (score === 4)
+      return { score: 4, label: 'Strong', color: 'bg-green-500' };
     return { score: 5, label: 'Very Strong', color: 'bg-emerald-600' };
   };
 
@@ -47,6 +50,32 @@ export default function SignupPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setForm((f) => ({ ...f, profilePictureUrl: data.data.secure_url }));
+      } else {
+        setError('Failed to upload profile picture');
+      }
+    } catch (err) {
+      setError('Upload error');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,20 +94,22 @@ export default function SignupPage() {
     router.push(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
   };
 
-  const handleUsernameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value;
-  setForm(f => ({ ...f, username: value }));
-  setUsernameAvailable(null);
-  if (value.length >= 3) {
-    const res = await fetch('/api/auth/check-username', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: value }),
-    });
-    const data = await res.json();
-    setUsernameAvailable(data.available);
-  }
-};
+  const handleUsernameChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, username: value }));
+    setUsernameAvailable(null);
+    if (value.length >= 3) {
+      const res = await fetch('/api/auth/check-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: value }),
+      });
+      const data = await res.json();
+      setUsernameAvailable(data.available);
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-[var(--background)] dark:bg-[var(--background)] transition-colors duration-300">
@@ -99,15 +130,6 @@ export default function SignupPage() {
             transition-colors duration-300
             backdrop-blur-md
           "
-          //  className="
-          //   flex flex-col gap-5 w-full max-w-md
-          //   bg-gradient-to-br from-[var(--card)] to-[var(--card-foreground)/10]
-          //   text-[var(--card-foreground)]
-          //   border border-[var(--border)]
-          //   shadow-2xl rounded-3xl p-10
-          //   transition-colors duration-300
-          //   backdrop-blur-md
-          // "
         >
           <div className="flex flex-col items-center mb-2">
             <div className="mb-2">
@@ -145,6 +167,76 @@ export default function SignupPage() {
             <p className="text-[var(--muted-foreground)] text-base text-center">
               Start collaborating in seconds. No credit card required.
             </p>
+          </div>
+          {/* Profile Picture Upload - Moved to Top */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative">
+              <div
+                className="w-24 h-24 rounded-full border-2 border-dashed border-[var(--primary)] flex items-center justify-center cursor-pointer hover:border-[var(--accent)] transition-colors"
+                onClick={() =>
+                  document.getElementById('profile-pic-input')?.click()
+                }
+              >
+                {uploading ? (
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+                ) : form.profilePictureUrl ? (
+                  <img
+                    src={form.profilePictureUrl}
+                    alt="Profile Preview"
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <svg
+                    width="32"
+                    height="32"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="text-[var(--primary)]"
+                  >
+                    <path
+                      d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H19C20.11 23 21 22.11 21 21V9ZM14 9H19.5L14 3.5V9Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                )}
+              </div>
+              {!uploading && !form.profilePictureUrl && (
+                <div className="absolute bottom-0 right-0 bg-[var(--primary)] rounded-full p-1">
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="text-white"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="3"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="M19 9h-2l-3-3-3 3H7l3 3-3 3h2l3-3 3 3h2l-3-3 3-3z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <input
+              id="profile-pic-input"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={loading || uploading}
+              className="hidden"
+            />
+            {uploading && (
+              <div className="text-sm text-[var(--muted-foreground)]">
+                Uploading...
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-3">
             <input
@@ -208,14 +300,22 @@ export default function SignupPage() {
             {form.password && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--muted-foreground)]">Password strength:</span>
-                  <span className={`font-medium ${
-                    passwordStrength.score <= 1 ? 'text-red-500' :
-                    passwordStrength.score === 2 ? 'text-orange-500' :
-                    passwordStrength.score === 3 ? 'text-blue-500' :
-                    passwordStrength.score === 4 ? 'text-green-500' :
-                    'text-emerald-600'
-                  }`}>
+                  <span className="text-[var(--muted-foreground)]">
+                    Password strength:
+                  </span>
+                  <span
+                    className={`font-medium ${
+                      passwordStrength.score <= 1
+                        ? 'text-red-500'
+                        : passwordStrength.score === 2
+                          ? 'text-orange-500'
+                          : passwordStrength.score === 3
+                            ? 'text-blue-500'
+                            : passwordStrength.score === 4
+                              ? 'text-green-500'
+                              : 'text-emerald-600'
+                    }`}
+                  >
                     {passwordStrength.label}
                   </span>
                 </div>
@@ -227,7 +327,10 @@ export default function SignupPage() {
                 </div>
                 <div className="text-xs text-[var(--muted-foreground)]">
                   {passwordStrength.score < 3 && (
-                    <span>Tip: Use uppercase, lowercase, numbers, and special characters</span>
+                    <span>
+                      Tip: Use uppercase, lowercase, numbers, and special
+                      characters
+                    </span>
                   )}
                 </div>
               </div>
@@ -235,7 +338,7 @@ export default function SignupPage() {
           </div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploading}
             className="
               mt-2 py-3 rounded-xl font-semibold text-lg
               bg-gradient-to-r from-[var(--primary)] to-[var(--accent)]
@@ -258,7 +361,7 @@ export default function SignupPage() {
               {success}
             </div>
           )}
-          <div className="flex items-center gap-2 my-2">
+          <div className="flex items-center gap-2 ">
             <div className="flex-1 h-px bg-[var(--border)]" />
             <span className="text-xs text-[var(--muted-foreground)]">
               or sign up with
@@ -343,30 +446,6 @@ export default function SignupPage() {
                 viewBox="0 0 24 24"
               >
                 <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.381-1.563 2.845-1.563 3.043 0 3.604 2.004 3.604 4.609v5.587z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              aria-label="Sign up with GitLab"
-              className="
-                bg-[var(--background)] border border-[var(--input)] rounded-full p-3
-                flex items-center justify-center
-                hover:bg-[var(--muted)] hover:text-[var(--primary)]
-                focus:outline-none focus:ring-2 focus:ring-[var(--primary)]
-                transition-all shadow
-              "
-              onClick={() => signIn('gitlab')}
-            >
-              {/* GitLab SVG */}
-              <svg
-                width="24"
-                height="24"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <g>
-                  <path d="M22.545 13.408l-2.036-6.263a1.13 1.13 0 0 0-2.149-.04l-1.63 4.991H7.27l-1.63-4.991a1.13 1.13 0 0 0-2.149.04l-2.036 6.263a1.13 1.13 0 0 0 .41 1.267l9.06 6.59a1.13 1.13 0 0 0 1.34 0l9.06-6.59a1.13 1.13 0 0 0 .41-1.267z" />
-                </g>
               </svg>
             </button>
           </div>

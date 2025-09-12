@@ -118,6 +118,40 @@ export default function MessagesPage() {
     }
   }, [chatIdFromQuery]);
 
+  useEffect(() => {
+    const markOnline = () => {
+      if (currentUserId) {
+        fetch('/api/messaging/messages/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId, isOnline: true }),
+        });
+      }
+    };
+
+    const markOffline = () => {
+      if (currentUserId) {
+        fetch('/api/messaging/messages/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId, isOnline: false }),
+        });
+      }
+    };
+
+    // Mark online on mount
+    markOnline();
+
+    // Mark offline on unload or page leave
+    const handleBeforeUnload = () => markOffline();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      markOffline();
+    };
+  }, [currentUserId]);
+
   const { data: messages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ['messages', selectedChatId],
     queryFn: () =>

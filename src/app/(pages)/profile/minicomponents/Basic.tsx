@@ -46,14 +46,14 @@ export default function Basic({ value = {}, onChange, onNext }: Props) {
         location: result.location,
         timezone: result.timezone,
       });
-    } catch (err) {
+    } catch {
       alert('Could not detect location.');
     }
     setDetecting(false);
   };
 
   return (
-    <div className=" bg-background py-0 px-0 sm:px-4 lg:px-6">
+    <div className="bg-background py-0 px-0 sm:px-4 lg:px-6">
       <div className="max-w-4xl mx-auto">
         <Form
           form={form}
@@ -62,147 +62,190 @@ export default function Basic({ value = {}, onChange, onNext }: Props) {
           onValuesChange={(_, all) => onChange?.(all as BasicValues)}
           className="space-y-6"
         >
-          {/* Glass morphism container */}
-          <div className="backdrop-blur-xl bg-card/40 border border-border rounded-[var(--radius)] p-6 shadow-[0_0_10px_var(--ring)] hover:shadow-[0_0_18px_var(--ring)] transition-shadow duration-300">
-            {/* Header section */}
-            <div className="mb-6">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
-                Personal Profile
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Tell us about yourself
+          <div
+            className="relative rounded-[var(--radius)] p-6 backdrop-blur-xl border border-border bg-card/50"
+            style={{
+              boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
+            }}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[calc(var(--radius)+1px)]"
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--primary) 10%, var(--accent-foreground) 50%, transparent 100%)',
+                opacity: 0.08,
+                maskImage:
+                  'radial-gradient(1200px 400px at 0% 0%, black, transparent 60%)',
+                WebkitMaskImage:
+                  'radial-gradient(1200px 400px at 0% 0%, black, transparent 60%)',
+              }}
+            />
+            <div className="mb-6 relative z-[1]">
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-7 w-7 rounded-full"
+                  style={{
+                    background:
+                      'conic-gradient(from 180deg, var(--primary), var(--accent-foreground), var(--primary))',
+                    boxShadow: '0 0 24px var(--ring)',
+                    opacity: 0.85,
+                  }}
+                />
+                <h2 className="text-[1.15rem] font-semibold leading-none bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent tracking-[0.005em]">
+                  Personal Profile
+                </h2>
+              </div>
+              <p className="text-muted-foreground mt-2 text-[0.9rem] leading-relaxed">
+                Share essentials that help collaborators and AI matchmakers
+                understand you better.
               </p>
             </div>
 
-            {/* Name and Location */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-0 relative z-[1]">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground">
-                  Display Name *
+                <label className="block text-[0.85rem] font-medium text-foreground">
+                  Display Name{' '}
+                  <span className="text-muted-foreground/80">*</span>
                 </label>
-                <div className="relative">
-                  <User
-                    className="absolute left-3 top-3 w-5 h-5"
-                    color="var(--primary)"
-                    stroke="var(--primary)"
-                    strokeWidth={1.5}
-                  />
-                  <Form.Item name="displayName" rules={[{ required: true }]}>
+                <Form.Item name="displayName" rules={[{ required: true }]}>
+                  <div className="relative">
+                    <User
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                      color="var(--primary)"
+                      stroke="var(--primary)"
+                      strokeWidth={1.5}
+                    />
                     <input
-                      className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground text-sm"
+                      className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent"
                       placeholder="Your full name"
                     />
-                  </Form.Item>
-                </div>
+                  </div>
+                </Form.Item>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground">
+                <label className="block text-[0.85rem] font-medium text-foreground">
                   Location
                 </label>
-                <div className="relative flex items-center">
-                  <MapPin
-                    style={{ color: 'var(--primary)' }}
-                    className="absolute left-3 top-3 w-5 h-5 pointer-events-none"
-                  />
-                  <Form.Item name="location" className="flex-1 mb-0">
-                    <input
-                      className="w-full pl-9 pr-9 py-2 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground text-sm"
-                      placeholder="City, Country"
-                    />
-                  </Form.Item>
-                  <button
-                    type="button"
-                    onClick={handleDetectLocation}
-                    disabled={detecting}
-                    className="absolute right-3 top-3 p-0 bg-transparent border-none focus:outline-none"
-                    title="Detect location"
-                    tabIndex={0}
-                  >
-                    <Target
-                      className={`w-5 h-5 ${detecting ? 'animate-spin' : ''}`}
+                <Form.Item name="location" className="mb-0">
+                  <div className="relative">
+                    <MapPin
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
                       style={{ color: 'var(--primary)' }}
                     />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Bio */}
-            <div className="space-y-1 mb-1">
-              <label className="block text-sm font-medium text-foreground">
-                Bio *
-              </label>
-           <Form.Item name="bio" rules={[{ required: true }]}>
-  <textarea
-    className="w-full p-3 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground min-h-[120px] text-sm whitespace-normal break-words"
-    placeholder="Tell us about yourself..."
-    style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
-  />
-</Form.Item>
-            </div>
-
-            {/* Social Links */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Timezone */}
-              <div className="relative group">
-                <Clock
-                  style={{ color: 'var(--primary)' }}
-                  className="absolute left-3 top-3 w-5 h-5"
-                />
-                <Form.Item name="timezone">
-                  <input
-                    className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground group-hover:border-primary/50 transition-colors text-sm"
-                    placeholder="UTC+5:30"
-                  />
-                </Form.Item>
-              </div>
-
-              {/* Website */}
-              <div className="relative group">
-                <Globe2
-                  style={{ color: 'var(--primary)' }}
-                  className="absolute left-3 top-3 w-5 h-5"
-                />
-                <Form.Item name="website">
-                  <input
-                    className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground group-hover:border-primary/50 transition-colors text-sm"
-                    placeholder="https://your.site"
-                  />
-                </Form.Item>
-              </div>
-
-              {/* GitHub */}
-              <div className="relative group">
-                <Github
-                  style={{ color: 'var(--primary)' }}
-                  className="absolute left-3 top-3 w-5 h-5"
-                />
-                <Form.Item name="githubUrl">
-                  <input
-                    className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground group-hover:border-primary/50 transition-colors text-sm"
-                    placeholder="GitHub username"
-                  />
+                    <input
+                      className="w-full pl-9 pr-10 py-2 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="City, Country"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDetectLocation}
+                      disabled={detecting}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[8px] p-1 transition-colors hover:bg-accent disabled:opacity-60"
+                      title="Detect location"
+                      tabIndex={0}
+                    >
+                      <Target
+                        className={`w-4 h-4 ${detecting ? 'animate-spin' : ''}`}
+                        style={{ color: 'var(--primary)' }}
+                      />
+                    </button>
+                  </div>
                 </Form.Item>
               </div>
             </div>
 
-            {/* LinkedIn */}
-            <div className="relative group mt-3">
-              <Linkedin
-                style={{ color: 'var(--primary)' }}
-                className="absolute left-3 top-3 w-5 h-5"
-              />
-              <Form.Item name="linkedinUrl">
-                <input
-                  className="w-full pl-9 pr-3 py-2 border border-input rounded-[var(--radius-sm)] focus:ring-2 focus:ring-ring focus:border-transparent text-foreground placeholder-muted-foreground group-hover:border-primary/50 transition-colors text-sm"
-                  placeholder="LinkedIn profile URL"
+            <div className="space-y-1 mb-0 relative z-[1]">
+              <div className="flex items-center justify-between">
+                <label className="block text-[0.85rem] font-medium text-foreground">
+                  Bio <span className="text-muted-foreground/80">*</span>
+                </label>
+              </div>
+              <Form.Item name="bio" rules={[{ required: true }]}>
+                <textarea
+                  className="w-full p-3 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground min-h-[120px] text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent resize-none"
+                  placeholder="Tell us about your focus areas, interests, and what you’re looking to build."
+                 
                 />
               </Form.Item>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-[1]">
+              <div className="space-y-1">
+                <label className="block text-[0.85rem] font-medium text-foreground">
+                  Timezone
+                </label>
+                <Form.Item name="timezone" className="mb-0">
+                  <div className="relative">
+                    <Clock
+                      style={{ color: 'var(--primary)' }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                    />
+                    <input
+                      className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="UTC+5:30"
+                    />
+                  </div>
+                </Form.Item>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[0.85rem] font-medium text-foreground">
+                  Website
+                </label>
+                <Form.Item name="website" className="mb-0">
+                  <div className="relative">
+                    <Globe2
+                      style={{ color: 'var(--primary)' }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                    />
+                    <input
+                      className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="https://your.site"
+                    />
+                  </div>
+                </Form.Item>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[0.85rem] font-medium text-foreground">
+                  GitHub
+                </label>
+                <Form.Item name="githubUrl" className="mb-0">
+                  <div className="relative">
+                    <Github
+                      style={{ color: 'var(--primary)' }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                    />
+                    <input
+                      className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="GitHub username"
+                    />
+                  </div>
+                </Form.Item>
+              </div>
+            </div>
+
+            <div className="space-y-1 mt- relative z-[1]">
+              <label className="block text-[0.85rem] font-medium text-foreground">
+                LinkedIn
+              </label>
+              <Form.Item name="linkedinUrl" className="mb-0">
+                <div className="relative">
+                  <Linkedin
+                    style={{ color: 'var(--primary)' }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                  />
+                  <input
+                    className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-sm)] bg-card/60 border border-input text-foreground placeholder-muted-foreground text-sm transition-all focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="LinkedIn profile URL"
+                  />
+                </div>
+              </Form.Item>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-3 relative z-[1]">
               <button
                 onClick={() => form.resetFields()}
                 className="px-4 py-2 rounded-[var(--radius-sm)] border border-border text-muted-foreground hover:bg-accent transition-colors duration-200 text-sm"
@@ -216,7 +259,11 @@ export default function Basic({ value = {}, onChange, onNext }: Props) {
                     onNext?.();
                   } catch {}
                 }}
-                className="px-6 py-2 rounded-[var(--radius-sm)] bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-200 shadow-[0_0_12px_var(--ring)] hover:shadow-[0_0_18px_var(--ring)] text-sm"
+                className="px-6 py-2 rounded-[var(--radius-sm)] bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-200"
+                style={{
+                  boxShadow:
+                    '0 0 0 1px var(--primary-foreground) inset, 0 0 24px var(--ring)',
+                }}
               >
                 Continue
               </button>

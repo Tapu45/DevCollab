@@ -140,6 +140,8 @@ model User {
   website           String?
   githubUrl         String?
   linkedinUrl       String?
+  externalProfiles ExternalProfile[]
+  accountStats     AccountStats[]
   
   // Account settings
   role              UserRole    @default(USER)
@@ -189,7 +191,8 @@ model User {
   reports               Report[]                @relation("ReportCreator")
   reportedBy            Report[]                @relation("ReportedUser")
   apiKeys               ApiKey[]
-  suggestionCache       UserSuggestionCache? 
+  suggestionCache UserSuggestionCache?
+  similarCache     UserSimilarCache?
   profileProgress ProfileProgress?
   connectionPrivacy ConnectionPrivacy?
   sentNotifications     Notification[] @relation("NotificationSender")
@@ -197,6 +200,9 @@ model User {
   notificationPreferences NotificationPreference[]
   messageReactions MessageReaction[]
   messageReads     MessageRead[]
+
+  isOnline  Boolean  @default(false)
+  lastSeen  DateTime?
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,12 +213,25 @@ model User {
 model UserSuggestionCache {
   id        String   @id @default(cuid())
   userId    String   @unique
-  data      Json
-  updatedAt DateTime @updatedAt
-
+  projectIdeas Json   // Array of generated project suggestions
+  skillSuggestions Json // Skill roadmap and suggestions
+  lastGenerated DateTime @default(now())
+  isValid   Boolean  @default(true)
+  
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_suggestion_cache")
+}
+
+model UserSimilarCache {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  data      Json     // Stores the cached response data (e.g., { users: [...], total: N })
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_similar_cache")
 }
 
 model ProfileProgress {
@@ -240,11 +259,65 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
+  stats  AccountStats[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
+}
+
+// Add this new model:
+model ExternalProfile {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String   // e.g., "leetcode", "behance", "devto", "codeforces", "codechef", "dribbble", "hashnode", "stackoverflow"
+  username     String
+  url          String?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    Int?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stats ExternalProfileStats[]
+
+  @@unique([userId, provider])
+  @@map("external_profiles")
+}
+
+model ExternalProfileStats {
+  id              String   @id @default(cuid())
+  profileId       String
+  provider        String   // "github", "gitlab", "linkedin", "leetcode", etc.
+  statsType       String   // "repositories", "followers", "following", "stars", "commits", "leetcode_solved", etc.
+  value           Int
+  metadata        Json?    // Additional data like language breakdown, difficulty breakdown, etc.
+  lastUpdated     DateTime @default(now())
+  
+  profile ExternalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, provider, statsType])
+  @@map("external_profile_stats")
+}
+
+model AccountStats {
+  id              String   @id @default(cuid())
+  accountId       String   // References Account.id
+  provider        String   // "github", "gitlab", "linkedin"
+  statsType       String   // "repositories", "followers", "following", "stars", "commits", "connections", etc.
+  value           Int
+  metadata        Json?    // Additional data like language breakdown, repo types, etc.
+  lastUpdated     DateTime @default(now())
+  userId          String   // <-- Add this line
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade) // <-- Add this line
+
+  @@unique([accountId, provider, statsType])
+  @@map("account_stats")
 }
 
 model Session {
@@ -1242,4 +1315,169 @@ model UserQuestionProgress {
   question     LeetCodeQuestion @relation(fields: [questionId], references: [id])
 
   @@unique([userId, questionId])
+}
+
+
+model GitHubAppInstallation {
+  id                String   @id @default(cuid())
+  userId            String
+  installationId    Int      @unique // GitHub installation ID
+  accountId         String   // GitHub account ID
+  accountLogin      String   // GitHub username
+  accountType       String   // User or Organization
+  permissions       Json     // Installation permissions
+  events            String[] // Webhook events
+  accessTokensUrl   String
+  repositoriesUrl   String
+  htmlUrl           String
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositories GitHubRepository[]
+  webhooks     GitHubWebhook[]
+
+  @@map("github_app_installations")
+}
+
+model GitHubRepository {
+  id                String   @id @default(cuid())
+  installationId    String
+  repoId            Int      @unique // GitHub repository ID
+  name              String
+  fullName          String
+  description       String?
+  private           Boolean
+  htmlUrl           String
+  cloneUrl          String
+  sshUrl            String
+  defaultBranch     String
+  language          String?
+  languages         Json?    // Language breakdown
+  topics            String[]
+  stargazersCount   Int      @default(0)
+  watchersCount     Int      @default(0)
+  forksCount        Int      @default(0)
+  openIssuesCount   Int      @default(0)
+  size              Int      @default(0)
+  createdAt         DateTime
+  updatedAt         DateTime
+  pushedAt          DateTime?
+  lastSynced        DateTime @default(now())
+
+  installation GitHubAppInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  commits      GitHubCommit[]
+  issues       GitHubIssue[]
+  pullRequests GitHubPullRequest[]
+  webhooks     GitHubWebhook[]
+
+  @@map("github_repositories")
+}
+
+model GitHubCommit {
+  id           String   @id @default(cuid())
+  repositoryId String
+  sha          String   @unique
+  message      String
+  authorName   String
+  authorEmail  String
+  authorDate   DateTime
+  committerName String
+  committerEmail String
+  committerDate DateTime
+  htmlUrl      String
+  stats        Json?    // Additions, deletions, total
+  files        Json?    // Changed files
+  createdAt    DateTime @default(now())
+
+  repository GitHubRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@map("github_commits")
+}
+
+model GitHubIssue {
+  id           String   @id @default(cuid())
+  repositoryId String
+  issueNumber  Int
+  title        String
+  body         String?
+  state        String   // open, closed
+  author       String   // GitHub username
+  assignees    String[] // GitHub usernames
+  labels       String[]
+  milestone    String?
+  htmlUrl      String
+  createdAt    DateTime
+  updatedAt    DateTime
+  closedAt     DateTime?
+  lastSynced   DateTime @default(now())
+
+  repository GitHubRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, issueNumber])
+  @@map("github_issues")
+}
+
+model GitHubPullRequest {
+  id           String   @id @default(cuid())
+  repositoryId String
+  prNumber     Int
+  title        String
+  body         String?
+  state        String   // open, closed, merged
+  author       String   // GitHub username
+  assignees    String[] // GitHub usernames
+  reviewers    String[] // GitHub usernames
+  labels       String[]
+  milestone    String?
+  baseBranch   String
+  headBranch   String
+  htmlUrl      String
+  createdAt    DateTime
+  updatedAt    DateTime
+  closedAt     DateTime?
+  mergedAt     DateTime?
+  lastSynced   DateTime @default(now())
+
+  repository GitHubRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, prNumber])
+  @@map("github_pull_requests")
+}
+
+model GitHubWebhook {
+  id             String   @id @default(cuid())
+  installationId String?
+  repositoryId   String?
+  webhookId      Int      @unique // GitHub webhook ID
+  name           String
+  events         String[] // Webhook events
+  config         Json     // Webhook configuration
+  isActive       Boolean  @default(true)
+  lastDelivery   DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installation GitHubAppInstallation? @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  repository   GitHubRepository?      @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@map("github_webhooks")
+}
+
+model GitHubActivity {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String   // push, pull_request, issue, commit, etc.
+  action       String?  // opened, closed, merged, etc.
+  repository   String   // repo full name
+  title        String?
+  description  String?
+  url          String?
+  metadata     Json?    // Additional activity data
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("github_activities")
 }

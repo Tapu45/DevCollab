@@ -23,16 +23,15 @@ export async function GET(req: NextRequest) {
     prisma.education.count({ where: { userId } }),
   ]);
 
-  const hasBasic = Boolean(user?.displayName || user?.bio);
+ 
   const hasOther = skillsCount > 0 || projectsCount > 0 || experiencesCount > 0 || educationsCount > 0;
 
-  const exists = hasBasic || hasOther;
+  const exists =  hasOther;
 
   return NextResponse.json({
     exists,
     details: {
-      displayName: !!user?.displayName,
-      bio: !!user?.bio,
+    
       skillsCount,
       projectsCount,
       experiencesCount,

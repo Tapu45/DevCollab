@@ -1,204 +1,106 @@
-"use client";
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
-import { 
-  Code2, 
-  Users, 
-  GraduationCap, 
-  Briefcase, 
-  Rocket, 
-  Brain, 
-  Target, 
-  TrendingUp,
-  Heart,
-  Zap,
-  Star,
+'use client';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { useRef, useState } from 'react';
+import {
+  Code2,
+  Users,
+  MessageCircle,
+  GitBranch,
   Coffee,
-  Github,
-  Laptop,
-  BookOpen,
-  Building,
-  Globe,
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  Trophy,
   Lightbulb,
-  UserCheck,
-  Network,
-  Shield,
-  Sparkles
-} from "lucide-react";
+  ArrowRight,
+  Heart,
+  Target,
+  Sparkles,
+} from 'lucide-react';
 
-// Persona data with detailed information
-const personas = [
+// Authentic developer stories and experiences
+const developerStories = [
   {
-    id: "solo-developer",
-    title: "Solo Developers",
-    subtitle: "The Independent Creators",
-    description: "Passionate developers working on personal projects who need collaborators to bring their ambitious ideas to life.",
-    avatar: "🧑‍💻",
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-50 dark:bg-blue-950/20",
-    textColor: "text-blue-600 dark:text-blue-400",
-    stats: {
-      count: "2.3M+",
-      growth: "+45%",
-      satisfaction: "92%"
+    id: 'open-source-contributor',
+    title: 'Open Source Contributor',
+    avatar: '👨‍💻',
+    color: 'from-blue-500 to-cyan-500',
+    bgColor: 'bg-blue-50 dark:bg-blue-950/20',
+    textColor: 'text-blue-600 dark:text-blue-400',
+    story: {
+      challenge: 'I was working on a personal project but hit a wall with database optimization. The queries were slow and I couldn\'t figure out why.',
+      solution: 'Found someone on DevConnect who had experience with similar issues. We paired on a call for an hour, and they showed me how to restructure my queries and add proper indexing.',
+      outcome: 'My app went from taking 5 seconds to load to under 500ms. That collaboration turned into a long-term friendship and we\'ve worked on several projects together.',
+      author: 'Sarah Chen',
+      role: 'Full Stack Developer',
+      location: 'San Francisco, CA',
     },
-    painPoints: [
-      "Feeling isolated in the development process",
-      "Missing critical skills for complete projects",
-      "Lack of motivation and accountability",
-      "Limited networking opportunities"
-    ],
-    goals: [
-      "Find compatible coding partners",
-      "Learn new technologies through collaboration",
-      "Complete ambitious personal projects",
-      "Build a professional network"
-    ],
-    features: [
-      "AI-powered skill matching",
-      "Project collaboration tools",
-      "Mentorship connections",
-      "Community support groups"
-    ],
-    testimonial: {
-      text: "DevConnect helped me find the perfect backend developer for my React project. We shipped in 3 weeks instead of 3 months!",
-      author: "Sarah Chen",
-      role: "Frontend Developer",
-      rating: 5
-    }
+    collaborationType: 'Technical Pairing',
+    duration: '1 hour session',
+    technologies: ['PostgreSQL', 'Node.js', 'Express'],
   },
   {
-    id: "team-leads",
-    title: "Team Leads",
-    subtitle: "The Project Orchestrators", 
-    description: "Experienced developers leading teams who need to find skilled contributors and manage collaborative development efficiently.",
-    avatar: "👨‍💼",
-    color: "from-purple-500 to-indigo-500",
-    bgColor: "bg-purple-50 dark:bg-purple-950/20",
-    textColor: "text-purple-600 dark:text-purple-400",
-    stats: {
-      count: "450K+",
-      growth: "+38%",
-      satisfaction: "89%"
+    id: 'career-changer',
+    title: 'Career Changer',
+    avatar: '🎓',
+    color: 'from-green-500 to-emerald-500',
+    bgColor: 'bg-green-50 dark:bg-green-950/20',
+    textColor: 'text-green-600 dark:text-green-400',
+    story: {
+      challenge: 'I was learning React but couldn\'t find real projects to practice on. My portfolio was just tutorial clones and I needed something more substantial.',
+      solution: 'Connected with a senior developer who needed help with their side project. They mentored me through building a real feature while teaching me best practices.',
+      outcome: 'I built a complete user authentication system and learned about testing, deployment, and code reviews. That project got me my first job as a junior developer.',
+      author: 'Marcus Johnson',
+      role: 'Junior Frontend Developer',
+      location: 'Austin, TX',
     },
-    painPoints: [
-      "Difficulty finding qualified team members",
-      "Managing remote team coordination",
-      "Ensuring code quality across contributors",
-      "Balancing diverse skill levels"
-    ],
-    goals: [
-      "Build high-performing development teams",
-      "Streamline project management workflows",
-      "Maintain code quality standards",
-      "Scale projects efficiently"
-    ],
-    features: [
-      "Team formation tools",
-      "Project management dashboard",
-      "Code review workflows",
-      "Performance analytics"
-    ],
-    testimonial: {
-      text: "The team formation feature is incredible. I built a 5-person team for our startup in just 2 days with perfect skill complementarity.",
-      author: "Marcus Rodriguez",
-      role: "CTO, TechStart",
-      rating: 5
-    }
+    collaborationType: 'Mentorship',
+    duration: '3 months',
+    technologies: ['React', 'Firebase', 'Jest'],
   },
   {
-    id: "students",
-    title: "Students & Learners",
-    subtitle: "The Future Builders",
-    description: "Computer science students and career changers looking to gain real-world experience through collaborative projects.",
-    avatar: "🎓",
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-50 dark:bg-green-950/20",
-    textColor: "text-green-600 dark:text-green-400",
-    stats: {
-      count: "890K+",
-      growth: "+67%",
-      satisfaction: "94%"
+    id: 'freelance-developer',
+    title: 'Freelance Developer',
+    avatar: '💼',
+    color: 'from-orange-500 to-red-500',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+    textColor: 'text-orange-600 dark:text-orange-400',
+    story: {
+      challenge: 'I kept getting projects that required both frontend and backend work, but I\'m primarily a frontend specialist. I was turning down good opportunities.',
+      solution: 'Found a backend developer who was in the same situation. We started collaborating on projects, splitting the work based on our strengths.',
+      outcome: 'We\'ve completed 12 projects together over the past year. I can now take on full-stack projects confidently, and we\'ve built a sustainable partnership.',
+      author: 'Elena Rodriguez',
+      role: 'Frontend Specialist',
+      location: 'Barcelona, Spain',
     },
-    painPoints: [
-      "Lack of real-world project experience",
-      "Difficulty finding study partners",
-      "Limited access to mentorship",
-      "Building a professional portfolio"
-    ],
-    goals: [
-      "Gain hands-on development experience",
-      "Build an impressive portfolio",
-      "Connect with industry mentors",
-      "Learn best practices from peers"
-    ],
-    features: [
-      "Student project matching",
-      "Mentorship programs",
-      "Skill verification system",
-      "Portfolio building tools"
-    ],
-    testimonial: {
-      text: "As a CS student, DevConnect gave me the chance to work on real projects. I landed my dream job thanks to the portfolio I built here!",
-      author: "Alex Kim",
-      role: "Computer Science Student",
-      rating: 5
-    }
+    collaborationType: 'Project Partnership',
+    duration: '1 year ongoing',
+    technologies: ['React', 'Django', 'AWS'],
   },
   {
-    id: "freelancers",
-    title: "Freelancers",
-    subtitle: "The Flexible Professionals",
-    description: "Independent contractors who need to expand their capabilities by partnering with other specialists for larger projects.",
-    avatar: "💼",
-    color: "from-orange-500 to-red-500",
-    bgColor: "bg-orange-50 dark:bg-orange-950/20",
-    textColor: "text-orange-600 dark:text-orange-400",
-    stats: {
-      count: "1.1M+",
-      growth: "+52%",
-      satisfaction: "91%"
+    id: 'startup-founder',
+    title: 'Startup Founder',
+    avatar: '🚀',
+    color: 'from-purple-500 to-indigo-500',
+    bgColor: 'bg-purple-50 dark:bg-purple-950/20',
+    textColor: 'text-purple-600 dark:text-purple-400',
+    story: {
+      challenge: 'My startup needed to launch an MVP quickly, but our small team was stretched thin. We needed specialized help with DevOps and security.',
+      solution: 'Found experienced developers through DevConnect who could work part-time on our project. They helped set up CI/CD and implemented security best practices.',
+      outcome: 'We launched on time and passed our security audit. Those developers became advisors and helped us scale to our Series A round.',
+      author: 'David Kim',
+      role: 'CTO, HealthTech Startup',
+      location: 'Seoul, South Korea',
     },
-    painPoints: [
-      "Limited by individual skill sets",
-      "Difficulty scaling to larger projects",
-      "Finding reliable collaboration partners",
-      "Competing with larger agencies"
-    ],
-    goals: [
-      "Expand service offerings through partnerships",
-      "Take on larger, more complex projects",
-      "Build a network of trusted collaborators",
-      "Increase revenue potential"
-    ],
-    features: [
-      "Freelancer network matching",
-      "Project revenue sharing tools",
-      "Client management system",
-      "Reputation & review system"
-    ],
-    testimonial: {
-      text: "I've tripled my project capacity by partnering with other freelancers on DevConnect. The revenue sharing tools make collaboration seamless.",
-      author: "David Thompson",
-      role: "Full Stack Freelancer",
-      rating: 5
-    }
-  }
+    collaborationType: 'Expert Consultation',
+    duration: '2 months',
+    technologies: ['Docker', 'Kubernetes', 'OAuth'],
+  },
 ];
 
-// Interactive persona card component
-const PersonaCard = ({ persona, isActive, onClick, index }: any) => {
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
-  
+// Story card component
+const StoryCard = ({ story, isActive, onClick, index }: any) => {
   return (
     <motion.div
       className={`relative p-6 rounded-2xl border cursor-pointer transition-all duration-300 ${
-        isActive 
-          ? `${persona.bgColor} border-primary shadow-lg scale-105` 
+        isActive
+          ? `${story.bgColor} border-primary shadow-lg scale-105`
           : 'bg-card border-border hover:border-primary/50'
       }`}
       onClick={() => onClick(index)}
@@ -210,70 +112,65 @@ const PersonaCard = ({ persona, isActive, onClick, index }: any) => {
     >
       {/* Avatar and Header */}
       <div className="flex items-center gap-4 mb-4">
-        <motion.div 
+        <motion.div
           className="text-4xl"
-          animate={{ 
+          animate={{
             scale: isActive ? [1, 1.1, 1] : 1,
-            rotate: isActive ? [0, 5, -5, 0] : 0
+            rotate: isActive ? [0, 5, -5, 0] : 0,
           }}
           transition={{ duration: 2, repeat: isActive ? Infinity : 0 }}
         >
-          {persona.avatar}
+          {story.avatar}
         </motion.div>
         <div>
-          <h3 className={`text-lg font-bold ${isActive ? persona.textColor : 'text-foreground'}`}>
-            {persona.title}
+          <h3
+            className={`text-lg font-bold ${isActive ? story.textColor : 'text-foreground'}`}
+          >
+            {story.title}
           </h3>
-          <p className="text-sm text-muted-foreground">{persona.subtitle}</p>
+          <p className="text-sm text-muted-foreground">{story.collaborationType}</p>
         </div>
       </div>
 
-      {/* Description */}
-      <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-        {persona.description}
+      {/* Story Preview */}
+      <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3">
+        {story.story.challenge}
       </p>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        {Object.entries(persona.stats).map(([key, value]) => (
-          <div key={key} className="text-center">
-            <div className={`text-lg font-bold ${isActive ? persona.textColor : 'text-foreground'}`}>
-              {String(value)}
-            </div>
-            <div className="text-xs text-muted-foreground capitalize">{key}</div>
-          </div>
+      {/* Technologies */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {story.technologies.map((tech: string, techIndex: number) => (
+          <span
+            key={techIndex}
+            className="px-2 py-1 bg-muted/50 text-xs rounded-md text-muted-foreground"
+          >
+            {tech}
+          </span>
         ))}
       </div>
 
-      {/* Active indicator */}
-      {isActive && (
-        <motion.div
-          className="absolute top-4 right-4"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <CheckCircle2 className={`w-5 h-5 ${persona.textColor}`} />
-        </motion.div>
-      )}
+      {/* Duration */}
+      <div className="text-xs text-muted-foreground">
+        {story.duration}
+      </div>
     </motion.div>
   );
 };
 
-// Detailed persona content component
-const PersonaDetails = ({ persona }: any) => {
-  const [activeTab, setActiveTab] = useState('challenges');
-  
-  const tabs = [
-    { id: 'challenges', label: 'Pain Points', icon: Target },
-    { id: 'goals', label: 'Goals', icon: Trophy },
-    { id: 'features', label: 'Solutions', icon: Sparkles },
-    { id: 'testimonial', label: 'Success Story', icon: Heart }
+// Detailed story content component
+const StoryDetails = ({ story }: any) => {
+  const [activeSection, setActiveSection] = useState('challenge');
+
+  const sections = [
+    { id: 'challenge', label: 'The Challenge', icon: Target },
+    { id: 'solution', label: 'How We Helped', icon: Lightbulb },
+    { id: 'outcome', label: 'The Result', icon: Sparkles },
+    { id: 'author', label: 'Their Story', icon: Heart },
   ];
 
   return (
     <motion.div
-      key={persona.id}
+      key={story.id}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
@@ -282,136 +179,143 @@ const PersonaDetails = ({ persona }: any) => {
     >
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <div className={`p-4 rounded-xl bg-gradient-to-br ${persona.color} text-white`}>
-          <span className="text-2xl">{persona.avatar}</span>
+        <div
+          className={`p-4 rounded-xl bg-gradient-to-br ${story.color} text-white`}
+        >
+          <span className="text-2xl">{story.avatar}</span>
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-foreground">{persona.title}</h2>
-          <p className="text-muted-foreground">{persona.subtitle}</p>
+          <h2 className="text-2xl font-bold text-foreground">
+            {story.title}
+          </h2>
+          <p className="text-muted-foreground">{story.collaborationType} • {story.duration}</p>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Section Tabs */}
       <div className="flex flex-wrap gap-2 mb-6 p-1 bg-muted/50 rounded-lg">
-        {tabs.map(tab => {
-          const Icon = tab.icon;
+        {sections.map((section) => {
+          const Icon = section.icon;
           return (
             <motion.button
-              key={tab.id}
+              key={section.id}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id
+                activeSection === section.id
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setActiveSection(section.id)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               <Icon className="w-4 h-4" />
-              {tab.label}
+              {section.label}
             </motion.button>
           );
         })}
       </div>
 
-      {/* Tab Content */}
+      {/* Section Content */}
       <AnimatePresence mode="wait">
-        {activeTab === 'challenges' && (
+        {activeSection === 'challenge' && (
           <motion.div
-            key="challenges"
+            key="challenge"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-3"
+            className="space-y-4"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-4">Current Challenges</h3>
-            {persona.painPoints.map((point: string, index: number) => (
-              <motion.div
-                key={index}
-                className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Target className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <p className="text-foreground">{point}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-
-        {activeTab === 'goals' && (
-          <motion.div
-            key="goals"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-3"
-          >
-            <h3 className="text-lg font-semibold text-foreground mb-4">Key Objectives</h3>
-            {persona.goals.map((goal: string, index: number) => (
-              <motion.div
-                key={index}
-                className="flex items-start gap-3 p-3 bg-primary/10 border border-primary/20 rounded-lg"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Trophy className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <p className="text-foreground">{goal}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-
-        {activeTab === 'features' && (
-          <motion.div
-            key="features"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-3"
-          >
-            <h3 className="text-lg font-semibold text-foreground mb-4">How DevConnect Helps</h3>
-            {persona.features.map((feature: string, index: number) => (
-              <motion.div
-                key={index}
-                className="flex items-start gap-3 p-3 bg-accent/50 border border-accent rounded-lg"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.02, backgroundColor: "var(--accent)" }}
-              >
-                <Sparkles className="w-5 h-5 text-accent-foreground flex-shrink-0 mt-0.5" />
-                <p className="text-foreground">{feature}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-
-        {activeTab === 'testimonial' && (
-          <motion.div
-            key="testimonial"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-xl p-6"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              {[...Array(persona.testimonial.rating)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              ))}
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              The Challenge
+            </h3>
+            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-foreground leading-relaxed">
+                {story.story.challenge}
+              </p>
             </div>
-            <blockquote className="text-foreground text-lg italic mb-4 leading-relaxed">
-              "{persona.testimonial.text}"
-            </blockquote>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${persona.color} flex items-center justify-center text-white font-bold`}>
-                {persona.testimonial.author.split(' ').map((n: any[]) => n[0]).join('')}
+          </motion.div>
+        )}
+
+        {activeSection === 'solution' && (
+          <motion.div
+            key="solution"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-4"
+          >
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              How DevConnect Helped
+            </h3>
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-foreground leading-relaxed">
+                {story.story.solution}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {activeSection === 'outcome' && (
+          <motion.div
+            key="outcome"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-4"
+          >
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              The Result
+            </h3>
+            <div className="p-4 bg-accent/50 border border-accent rounded-lg">
+              <p className="text-foreground leading-relaxed">
+                {story.story.outcome}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {activeSection === 'author' && (
+          <motion.div
+            key="author"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-4"
+          >
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Their Story
+            </h3>
+            <div className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-xl p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div
+                  className={`w-12 h-12 rounded-full bg-gradient-to-br ${story.color} flex items-center justify-center text-white font-bold`}
+                >
+                  {story.story.author
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .join('')}
+                </div>
+                <div>
+                  <div className="font-semibold text-foreground">
+                    {story.story.author}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {story.story.role}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {story.story.location}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="font-semibold text-foreground">{persona.testimonial.author}</div>
-                <div className="text-sm text-muted-foreground">{persona.testimonial.role}</div>
+              <div className="flex flex-wrap gap-2">
+                {story.technologies.map((tech: string, techIndex: number) => (
+                  <span
+                    key={techIndex}
+                    className="px-3 py-1 bg-muted/50 text-sm rounded-full text-muted-foreground"
+                  >
+                    {tech}
+                  </span>
+                ))}
               </div>
             </div>
           </motion.div>
@@ -426,20 +330,15 @@ const DeveloperPersonas = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(titleRef, { once: true, amount: 0.3 });
-  
-  const [activePersona, setActivePersona] = useState(0);
 
-  // Auto-rotate personas
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActivePersona(prev => (prev + 1) % personas.length);
-    }, 8000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  const [activeStory, setActiveStory] = useState(0);
+
+  const handleStoryClick = (index: number) => {
+    setActiveStory(index);
+  };
 
   return (
-    <section 
+    <section
       ref={containerRef}
       className="relative py-20 bg-gradient-to-b from-background via-muted/5 to-background overflow-hidden"
     >
@@ -447,103 +346,105 @@ const DeveloperPersonas = () => {
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
-        
+
         {/* Floating Icons */}
-        {[Code2, Users, GraduationCap, Briefcase, Rocket, Brain].map((Icon, index) => (
-          <motion.div
-            key={index}
-            className="absolute text-muted-foreground/10"
-            style={{
-              left: `${20 + (index * 15)}%`,
-              top: `${10 + (index % 3) * 20}%`,
-            }}
-            animate={{
-              y: [0, -20, 0],
-              rotate: [0, 360],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{
-              duration: 15 + index * 2,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          >
-            <Icon className="w-8 h-8" />
-          </motion.div>
-        ))}
+        {[Code2, Users, MessageCircle, GitBranch, Coffee].map(
+          (Icon, index) => (
+            <motion.div
+              key={index}
+              className="absolute text-muted-foreground/10"
+              style={{
+                left: `${20 + index * 15}%`,
+                top: `${10 + (index % 3) * 20}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                rotate: [0, 360],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{
+                duration: 15 + index * 2,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+            >
+              <Icon className="w-8 h-8" />
+            </motion.div>
+          ),
+        )}
       </div>
 
       <div className="relative z-10 container mx-auto px-4">
         {/* Section Header */}
-        <motion.div 
+        <motion.div
           ref={titleRef}
           className="text-center max-w-3xl mx-auto mb-16"
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
         >
-          <motion.div 
+          <motion.div
             className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6"
             initial={{ scale: 0 }}
             animate={isInView ? { scale: 1 } : {}}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           >
             <Users className="w-4 h-4" />
-            Developer Community
+            Real Developer Stories
           </motion.div>
 
-          <motion.h2 
+          <motion.h2
             className="text-3xl md:text-4xl font-bold mb-6 text-foreground"
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            Built for Every Type of{" "}
-            <span className="text-primary">Developer</span>
+            Real Collaborations, Real{' '}
+            <span className="text-primary">Results</span>
           </motion.h2>
 
-          <motion.p 
+          <motion.p
             className="text-lg text-muted-foreground leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.4, duration: 0.6 }}
           >
-            Whether you're coding solo, leading teams, learning the ropes, or freelancing, 
-            DevConnect adapts to your unique needs and connects you with the right collaborators.
+            These are actual stories from developers who found help, built partnerships, 
+            and grew their careers through meaningful collaborations on DevConnect.
           </motion.p>
         </motion.div>
 
-        {/* Persona Cards Grid */}
-        <motion.div 
+        {/* Story Cards Grid */}
+        <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.6, duration: 0.8 }}
         >
-          {personas.map((persona, index) => (
-            <PersonaCard
-              key={persona.id}
-              persona={persona}
-              isActive={activePersona === index}
-              onClick={setActivePersona}
+          {developerStories.map((story, index) => (
+            <StoryCard
+              key={story.id}
+              story={story}
+              isActive={activeStory === index}
+              onClick={handleStoryClick}
               index={index}
             />
           ))}
         </motion.div>
 
-        {/* Detailed Persona Content */}
+        {/* Detailed Story Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.8, duration: 0.6 }}
         >
           <AnimatePresence mode="wait">
-            <PersonaDetails persona={personas[activePersona]} />
+            <StoryDetails story={developerStories[activeStory]} />
           </AnimatePresence>
         </motion.div>
 
         {/* Call to Action */}
-        <motion.div 
+        <motion.div
           className="text-center mt-16"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -552,11 +453,11 @@ const DeveloperPersonas = () => {
         >
           <div className="max-w-2xl mx-auto p-8 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-primary/10 rounded-2xl backdrop-blur-sm">
             <h3 className="text-xl font-bold text-foreground mb-4">
-              Find Your Developer Community Today
+              Ready to Write Your Own Story?
             </h3>
             <p className="text-muted-foreground mb-6">
-              Join thousands of developers who've already found their perfect collaborators. 
-              Your next breakthrough project is just a connection away.
+              Join developers who are building real connections, solving actual problems, 
+              and creating meaningful collaborations every day.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.button
@@ -572,7 +473,7 @@ const DeveloperPersonas = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Learn More
+              Browse Projects
               </motion.button>
             </div>
           </div>
