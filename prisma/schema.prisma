@@ -142,7 +142,11 @@ model User {
   linkedinUrl       String?
   externalProfiles ExternalProfile[]
   accountStats     AccountStats[]
-  
+
+  githubActivities    GitHubActivity[]
+
+  linkedinProfile LinkedInProfile?
+
   // Account settings
   role              UserRole    @default(USER)
   accountType       AccountType @default(INDIVIDUAL)
@@ -203,6 +207,10 @@ model User {
 
   isOnline  Boolean  @default(false)
   lastSeen  DateTime?
+
+ 
+  sessionActivities SessionActivity[]
+  devices          UserDevice[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -260,6 +268,7 @@ model Account {
   id_token          String?
   session_state     String?
   stats  AccountStats[]
+  githubInstallations GitHubAppInstallation[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -320,19 +329,245 @@ model AccountStats {
   @@map("account_stats")
 }
 
+
+model LinkedInProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  linkedinId        String   @unique // LinkedIn member ID
+  firstName         String
+  lastName          String
+  headline          String?
+  summary           String?
+  industry          String?
+  location          String?
+  profilePictureUrl String?
+  bannerPictureUrl  String?
+  publicProfileUrl  String
+  vanityName        String?
+  isActive          Boolean  @default(true)
+  lastSynced        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences LinkedInExperience[]
+  educations  LinkedInEducation[]
+  skills      LinkedInSkill[]
+  connections LinkedInConnection[]
+  posts       LinkedInPost[]
+  activities  LinkedInActivity[]
+
+  @@map("linkedin_profiles")
+}
+
+model LinkedInExperience {
+  id              String   @id @default(cuid())
+  profileId       String
+  experienceId    String   @unique // LinkedIn experience ID
+  title           String
+  companyName     String
+  companyId       String?
+  location        String?
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
+  isCurrent       Boolean  @default(false)
+  companyLogoUrl  String?
+  companyUrl      String?
+  lastSynced      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile LinkedInProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("linkedin_experiences")
+}
+
+model LinkedInEducation {
+  id              String   @id @default(cuid())
+  profileId       String
+  educationId     String   @unique // LinkedIn education ID
+  schoolName      String
+  schoolId        String?
+  degree          String?
+  fieldOfStudy    String?
+  startDate       DateTime?
+  endDate         DateTime?
+  grade           String?
+  activities      String?
+  description     String?
+  schoolLogoUrl   String?
+  lastSynced      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile LinkedInProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("linkedin_educations")
+}
+
+model LinkedInSkill {
+  id              String   @id @default(cuid())
+  profileId       String
+  skillId         String   @unique // LinkedIn skill ID
+  name            String
+  endorsements   Int      @default(0)
+  lastSynced      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile LinkedInProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("linkedin_skills")
+}
+
+model LinkedInConnection {
+  id              String   @id @default(cuid())
+  profileId       String
+  connectionId    String   @unique // LinkedIn connection ID
+  firstName       String
+  lastName        String
+  headline        String?
+  profilePictureUrl String?
+  publicProfileUrl String
+  industry        String?
+  location        String?
+  isActive        Boolean  @default(true)
+  lastSynced      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile LinkedInProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("linkedin_connections")
+}
+
+model LinkedInPost {
+  id              String   @id @default(cuid())
+  profileId       String
+  postId          String   @unique // LinkedIn post ID
+  text            String?
+  authorName      String
+  authorHeadline  String?
+  authorProfileUrl String
+  authorPictureUrl String?
+  postType        String   // text, image, video, article, etc.
+  mediaUrls       String[] // URLs to images/videos
+  articleUrl      String?  // For article posts
+  articleTitle    String?  // For article posts
+  articleDescription String? // For article posts
+  articleImageUrl String?  // For article posts
+  likesCount      Int      @default(0)
+  commentsCount   Int      @default(0)
+  sharesCount     Int      @default(0)
+  publishedAt     DateTime
+  lastSynced      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile LinkedInProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("linkedin_posts")
+}
+
+model LinkedInActivity {
+  id              String   @id @default(cuid())
+  profileId       String   // <-- Change from userId to profileId
+  type            String   // post, connection, profile_update, etc.
+  action          String?  // created, updated, connected, etc.
+  title           String?
+  description     String?
+  url             String?
+  metadata        Json?    // Additional activity data
+  createdAt       DateTime @default(now())
+
+  profile LinkedInProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)  // <-- Change relation to LinkedInProfile
+
+  @@map("linkedin_activities")
+}
+
+model LinkedInCompany {
+  id              String   @id @default(cuid())
+  companyId       String   @unique // LinkedIn company ID
+  name            String
+  description     String?
+  industry        String?
+  companySize     String?
+  website         String?
+  logoUrl         String?
+  bannerUrl       String?
+  location        String?
+  foundedYear     Int?
+  employeeCount   Int?
+  followersCount  Int?
+  lastSynced      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("linkedin_companies")
+}
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshToken String   @unique
-  device      String?
-  ipAddress   String?
-  userAgent   String?
+  
+  // Enhanced session tracking
+  device       String?  // Device name/type
+  deviceId     String?  // Unique device identifier
+  ipAddress    String?
+  userAgent    String?
+  location     String?  // City, Country
+  isActive     Boolean  @default(true)
+  lastActivity DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  sessionActivities SessionActivity[]
 
   @@map("sessions")
+}
+
+// Add new model for session activity logs
+model SessionActivity {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String   // Add this field (populate from Session.userId)
+  action    String   // LOGIN, LOGOUT, ACTIVITY, TERMINATED
+  ipAddress String?
+  userAgent String?
+  location  String?
+  metadata  Json?    // Additional data like page visited, etc.
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)  // Add this relation
+
+  @@map("session_activities")
+}
+
+// Add new model for device management
+model UserDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  deviceId    String   @unique
+  deviceName  String   // "Chrome on Windows", "Safari on iPhone", etc.
+  deviceType  String   // "desktop", "mobile", "tablet"
+  osName      String?  // "Windows", "macOS", "iOS", "Android"
+  osVersion   String?
+  browserName String?  // "Chrome", "Safari", "Firefox"
+  browserVersion String?
+  isTrusted   Boolean  @default(false)
+  lastUsed    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@map("user_devices")
 }
 
 model VerificationToken {
@@ -1320,9 +1555,9 @@ model UserQuestionProgress {
 
 model GitHubAppInstallation {
   id                String   @id @default(cuid())
-  userId            String
+  accountId         String   // Foreign key to Account model
   installationId    Int      @unique // GitHub installation ID
-  accountId         String   // GitHub account ID
+  githubAccountId   String   // GitHub account ID (renamed from accountId)
   accountLogin      String   // GitHub username
   accountType       String   // User or Organization
   permissions       Json     // Installation permissions
@@ -1334,7 +1569,7 @@ model GitHubAppInstallation {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   repositories GitHubRepository[]
   webhooks     GitHubWebhook[]
 
@@ -1463,6 +1698,18 @@ model GitHubWebhook {
   repository   GitHubRepository?      @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
 
   @@map("github_webhooks")
+}
+
+model GitHubWebhookDelivery {
+  id         String   @id @default(cuid())
+  eventType  String
+  deliveryId String
+  payload    Json
+  createdAt  DateTime @default(now())
+  processed  Boolean  @default(false)
+
+  @@index([eventType])
+  @@index([createdAt])
 }
 
 model GitHubActivity {

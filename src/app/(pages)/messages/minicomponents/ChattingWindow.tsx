@@ -2,8 +2,7 @@
 
 import { useRef, useLayoutEffect, useState } from 'react'; 
 import { AnimatePresence } from 'framer-motion';
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
+import EmojiPicker from 'emoji-picker-react';
 import {
   MessageCircle,
   Phone,
@@ -433,21 +432,17 @@ function formatLastSeen(lastSeen: string) {
                 />
                 {showEmojiPicker && (
                   <div className="absolute bottom-16 left-0 z-20">
-                    <div
-                      style={{ height: 300, width: 350, overflow: 'hidden' }}
-                    >
-                      <Picker
-                        data={data}
-                        onEmojiSelect={(emoji: any) => {
-                          setNewMessage(newMessage + emoji.native);
-                          setShowEmojiPicker(false);
-                        }}
-                        theme="auto"
-                        previewPosition="none"
-                        searchPosition="none"
-                        perLine={8}
-                      />
-                    </div>
+                    <EmojiPicker
+                      onEmojiClick={(emojiData) => {
+                        setNewMessage(newMessage + emojiData.emoji);
+                        setShowEmojiPicker(false);
+                      }}
+                     
+                      searchPlaceHolder="Search emojis..."
+                      previewConfig={{ showPreview: false }}
+                      height={300}
+                      width={350}
+                    />
                   </div>
                 )}
               </div>

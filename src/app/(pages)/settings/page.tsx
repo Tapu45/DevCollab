@@ -120,6 +120,20 @@ const settingsCategories = [
     iconColor: 'text-amber-600',
     features: ['Link accounts', 'Manage API access', 'External profiles'],
   },
+  {
+    id: 'sessions',
+    title: 'Active Sessions',
+    description: 'Manage your active sessions across different devices',
+    icon: Shield,
+    href: '/settings/sessions',
+    color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    iconColor: 'text-red-600',
+    features: [
+      'View active sessions',
+      'Terminate sessions',
+      'Security management',
+    ],
+  },
 ];
 
 export default function SettingsPage() {
