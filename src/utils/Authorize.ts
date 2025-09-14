@@ -1,6 +1,9 @@
-import { getServerSession, Session } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 
-export async function getAuthSession(): Promise<Session | null> {
-  return await getServerSession(authOptions) as Session | null;
+export async function getAuthSession(): Promise<{ user: { id: string } } | null> {
+  const { userId } = await auth();
+  if (!userId) {
+    return null;
+  }
+  return { user: { id: userId } };
 }

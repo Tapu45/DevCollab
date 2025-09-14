@@ -1,8 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 
 // Socket.io event types
@@ -12,13 +11,13 @@ export interface ServerToClientEvents {
   connection_accepted: (data: { accepterId: string; accepterName: string }) => void;
   connection_declined: (data: { declinerId: string; declinerName: string }) => void;
   connection_blocked: (data: { blockerId: string; blockerName: string }) => void;
-  
+
   // Message events
-  message_received: (data: { 
-    messageId: string; 
-    chatId: string; 
-    senderId: string; 
-    content: string; 
+  message_received: (data: {
+    messageId: string;
+    chatId: string;
+    senderId: string;
+    content: string;
     type: string;
     createdAt: Date;
   }) => void;
@@ -28,28 +27,28 @@ export interface ServerToClientEvents {
   message_read: (data: { messageId: string; userId: string; readAt: Date }) => void;
   typing_start: (data: { chatId: string; userId: string; userName: string }) => void;
   typing_stop: (data: { chatId: string; userId: string }) => void;
-  
+
   // Chat events
   chat_created: (data: { chatId: string; name?: string; participants: string[] }) => void;
   participant_added: (data: { chatId: string; userId: string; userName: string }) => void;
   participant_removed: (data: { chatId: string; userId: string; userName: string }) => void;
   chat_updated: (data: { chatId: string; name?: string; description?: string }) => void;
-  
+
   // Notification events
-  notification_received: (data: { 
-    notificationId: string; 
-    type: string; 
-    title: string; 
+  notification_received: (data: {
+    notificationId: string;
+    type: string;
+    title: string;
     message: string;
     actionUrl?: string;
     priority: string;
   }) => void;
   notification_read: (data: { notificationId: string }) => void;
-  
+
   // Project events (for future)
   project_invitation: (data: { projectId: string; projectName: string; inviterName: string }) => void;
   task_assigned: (data: { taskId: string; taskTitle: string; assignerName: string }) => void;
-  
+
   // System events
   user_online: (data: { userId: string; userName: string }) => void;
   user_offline: (data: { userId: string; userName: string }) => void;
@@ -61,7 +60,7 @@ export interface ClientToServerEvents {
   send_connection_request: (data: { receiverId: string; type: string; message?: string }) => void;
   respond_connection_request: (data: { connectionId: string; response: 'accept' | 'decline' }) => void;
   block_user: (data: { userId: string }) => void;
-  
+
   // Message events
   send_message: (data: { chatId: string; content: string; type?: string; replyToId?: string }) => void;
   edit_message: (data: { messageId: string; newContent: string }) => void;
@@ -69,11 +68,11 @@ export interface ClientToServerEvents {
   add_reaction: (data: { messageId: string; emoji: string }) => void;
   remove_reaction: (data: { messageId: string; emoji: string }) => void;
   mark_message_read: (data: {
-      chatId: any; messageId: string 
-}) => void;
+    chatId: any; messageId: string
+  }) => void;
   start_typing: (data: { chatId: string }) => void;
   stop_typing: (data: { chatId: string }) => void;
-  
+
   // Chat events
   create_chat: (data: { type: string; name?: string; participantIds: string[] }) => void;
   add_participant: (data: { chatId: string; userId: string }) => void;
@@ -81,10 +80,10 @@ export interface ClientToServerEvents {
   update_chat: (data: { chatId: string; name?: string; description?: string }) => void;
   join_chat: (data: { chatId: string }) => void;
   leave_chat: (data: { chatId: string }) => void;
-  
+
   // Notification events
   mark_notification_read: (data: { notificationId: string }) => void;
-  
+
   // System events
   join_user_room: () => void;
   leave_user_room: () => void;
@@ -116,16 +115,16 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
-      // Get session from socket handshake
-      const session = await getServerSession(authOptions);
-      
-      if (!session?.user?.id) {
+      // Get userId from Clerk auth
+      const { userId } = await auth();
+
+      if (!userId) {
         return next(new Error('Authentication error'));
       }
 
       // Get user data
       const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
+        where: { id: userId },
         select: {
           id: true,
           username: true,
@@ -153,12 +152,12 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   // Connection handling
   io.on('connection', (socket) => {
     const { userId, userName } = socket.data;
-    
+
     console.log(`User ${userName} (${userId}) connected`);
 
     // Join user's personal room
     socket.join(`user:${userId}`);
-    
+
     // Notify others that user is online
     socket.broadcast.emit('user_online', { userId, userName });
 
@@ -230,7 +229,7 @@ export const initializeSocket = (httpServer: HTTPServer) => {
 
         // Emit to all participants except sender
         const participantIds = chatParticipants.map(p => p.userId).filter(id => id !== userId);
-        
+
         participantIds.forEach(participantId => {
           socket.to(`user:${participantId}`).emit('message_received', {
             messageId: `temp_${Date.now()}`, // Temporary ID, will be replaced with real ID
@@ -308,7 +307,7 @@ export const initializeSocket = (httpServer: HTTPServer) => {
     // Disconnection handling
     socket.on('disconnect', () => {
       console.log(`User ${userName} (${userId}) disconnected`);
-      
+
       // Notify others that user is offline
       socket.broadcast.emit('user_offline', { userId, userName });
     });

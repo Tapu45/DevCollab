@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { MessagingService } from '@/services/MessagingService';
 
 export async function GET(
@@ -11,8 +10,8 @@ export async function GET(
   const awaitedParams = await params;
   const chatId = awaitedParams.chatId;
 
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -22,7 +21,7 @@ export async function GET(
   const before = searchParams.get('before');
 
   try {
-    const messages = await MessagingService.getChatMessages(chatId, session.user.id, {
+    const messages = await MessagingService.getChatMessages(chatId, userId, {
       limit,
       offset,
       before: before === null ? undefined : before,
@@ -42,8 +41,8 @@ export async function POST(
   const awaitedParams = await params;
   const chatId = awaitedParams.chatId;
 
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -52,7 +51,7 @@ export async function POST(
     const message = await MessagingService.sendMessage({
       ...data,
       chatId,
-      senderId: session.user.id,
+      senderId: userId,
     });
 
     return NextResponse.json({ message }, { status: 201 });

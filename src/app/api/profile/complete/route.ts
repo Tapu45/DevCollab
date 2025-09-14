@@ -1,35 +1,30 @@
-import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/Prisma";
-import { extractUserProfileData } from "@/utils/ProfileExtractor";
-import { storeUserEmbedding } from "@/utils/Pinecone";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/Prisma';
+import { extractUserProfileData } from '@/utils/ProfileExtractor';
+import { storeUserEmbedding } from '@/utils/Pinecone';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // 1. Get authenticated user
-     const session = await getServerSession(authOptions); // <-- Pass authOptions here!
-    if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userId = session.user.id;
-    if (!userId || typeof userId !== "string") {
-      return Response.json({ error: "User ID is missing or invalid" }, { status: 400 });
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // 2. Get user's complete profile data
     const profileData = await extractUserProfileData(userId);
-    
+
     // 3. Store embedding in Pinecone
     const success = await storeUserEmbedding(userId);
     if (!success) {
-      throw new Error("Failed to store user embedding");
+      throw new Error('Failed to store user embedding');
     }
 
     // 4. Update user's profile completion status
     await prisma.user.update({
       where: { id: userId },
-      data: { 
+      data: {
         // Add any profile completion flags or metadata
         // These are examples - adjust based on your needs
         profileCompleted: true,
@@ -37,29 +32,27 @@ export async function POST(req: Request) {
       }
     });
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
-      message: "Profile completed and embeddings stored successfully",
+      message: 'Profile completed and embeddings stored successfully',
       profileData
     });
 
   } catch (error) {
-    console.error("Error completing profile:", error);
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Failed to complete profile" },
+    console.error('Error completing profile:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to complete profile' },
       { status: 500 }
     );
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession();
-    if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const userId = session.user.id;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -73,7 +66,7 @@ export async function GET(req: Request) {
     });
 
     if (!user) {
-      return Response.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const completionStatus = {
@@ -86,12 +79,12 @@ export async function GET(req: Request) {
       }
     };
 
-    return Response.json(completionStatus);
+    return NextResponse.json(completionStatus);
 
   } catch (error) {
-    console.error("Error checking profile status:", error);
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Failed to check profile status" },
+    console.error('Error checking profile status:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to check profile status' },
       { status: 500 }
     );
   }

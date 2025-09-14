@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { ClerkProvider } from '@clerk/nextjs';
 import { AuthProvider } from '../context/AuthContext';
 import { SignupProvider } from '@/context/SignupContext';
 import RouteLayoutWrapper from '@/components/Layout/RootLayoutWrapper';
 import QueryProvider from '../context/QueryProvider';
-import NextAuthProvider from '@/context/SessionProvider';
 import { RazorpayScript } from '@/lib/RazorpayScript';
 import { PageProvider } from '@/context/PageContext';
 import LenisProvider from '@/components/shared/LenisProvider';
@@ -33,12 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* <LenisProvider> */}
-        <NextAuthProvider>
+    <ClerkProvider>
+      <html lang="en" className="dark">
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
           <QueryProvider>
             <AuthProvider>
               <SignupProvider>
@@ -51,9 +50,8 @@ export default function RootLayout({
               </SignupProvider>
             </AuthProvider>
           </QueryProvider>
-        </NextAuthProvider>
-        {/* </LenisProvider> */}
-      </body>
-    </html>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

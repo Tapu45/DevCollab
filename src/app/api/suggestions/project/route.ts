@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from '@clerk/nextjs/server';
 import { SuggestionCacheService } from "@/services/SuggestionCacheService";
 import { generateUserSuggestions } from "@/trigger/generateUserSuggestions";
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const { userId } = await auth();
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const suggestions = await SuggestionCacheService.getUserSuggestions(session.user.id);
+        const suggestions = await SuggestionCacheService.getUserSuggestions(userId);
 
         return NextResponse.json({
             success: true,
@@ -29,19 +28,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.id) {
+        const { userId } = await auth();
+        if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const { force } = await request.json();
 
         if (force) {
-            await SuggestionCacheService.invalidateUserCache(session.user.id);
+            await SuggestionCacheService.invalidateUserCache(userId);
         }
 
         // Enqueue instead of computing synchronously
-        await generateUserSuggestions.trigger({ userId: session.user.id });
+        await generateUserSuggestions.trigger({ userId: userId });
 
         return NextResponse.json({
             success: true,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reindexAllUserEmbeddings, checkPineconeHealth, storeUserEmbedding } from '@/utils/Pinecone';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import { UserRole } from '@/generated/prisma';
 
@@ -9,29 +8,29 @@ import { UserRole } from '@/generated/prisma';
 export async function GET(request: NextRequest) {
   try {
     // Verify admin permissions
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    
+
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { role: true }
     });
-    
+
     if (user?.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
-    
+
     // Check Pinecone health
     const healthStatus = await checkPineconeHealth();
-    
+
     return NextResponse.json(healthStatus);
   } catch (error) {
     console.error("Error checking Pinecone health:", error);
     return NextResponse.json(
-      { error: "Failed to check Pinecone health" }, 
+      { error: "Failed to check Pinecone health" },
       { status: 500 }
     );
   }
@@ -41,24 +40,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify admin permissions
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    
+
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { role: true }
     });
-    
+
     if (user?.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
-    
+
     const body = await request.json();
     const { action } = body;
-    
+
     if (action === "reindex_all") {
       // Get all users with completed profiles
       const users = await prisma.user.findMany({
@@ -69,15 +68,15 @@ export async function POST(request: NextRequest) {
           profileVisibility: { not: "private" }
         }
       });
-      
+
       // Reindex all users
       const result = await reindexAllUserEmbeddings(users);
-      
+
       return NextResponse.json(result);
     } else if (action === "index_user" && body.userId) {
       // Index a specific user
       const success = await storeUserEmbedding(body.userId);
-      
+
       return NextResponse.json({ success });
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error processing admin embeddings action:", error);
     return NextResponse.json(
-      { error: "Failed to process admin action" }, 
+      { error: "Failed to process admin action" },
       { status: 500 }
     );
   }

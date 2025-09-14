@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -27,8 +26,8 @@ export async function GET(req: NextRequest) {
         status: 'ACCEPTED',
         type: typeMap[action] as any,
         OR: [
-          { senderId: session.user.id },
-          { receiverId: session.user.id },
+          { senderId: userId },
+          { receiverId: userId },
         ],
       },
       include: {
@@ -44,8 +43,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -68,7 +67,7 @@ export async function PUT(req: NextRequest) {
 
   if (
     !connection ||
-    (connection.senderId !== session.user.id && connection.receiverId !== session.user.id) ||
+    (connection.senderId !== userId && connection.receiverId !== userId) ||
     connection.status !== 'ACCEPTED'
   ) {
     return NextResponse.json({ error: 'Connection not found or not allowed' }, { status: 404 });

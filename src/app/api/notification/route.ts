@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { NotificationService } from '@/services/NotificationService';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -16,11 +15,11 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get('category') as any;
 
   const notifications = await NotificationService.getUserNotifications(
-    session.user.id,
+    userId,
     { limit, offset, unreadOnly, category }
   );
 
-  const unreadCount = await NotificationService.getUnreadCount(session.user.id);
+  const unreadCount = await NotificationService.getUnreadCount(userId);
 
   return NextResponse.json({
     notifications,
@@ -30,20 +29,20 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { action, notificationId, category } = await req.json();
 
   if (action === 'markAsRead' && notificationId) {
-    await NotificationService.markAsRead(notificationId, session.user.id);
+    await NotificationService.markAsRead(notificationId, userId);
     return NextResponse.json({ success: true });
   }
 
   if (action === 'markAllAsRead') {
-    await NotificationService.markAllAsRead(session.user.id, category);
+    await NotificationService.markAllAsRead(userId, category);
     return NextResponse.json({ success: true });
   }
 

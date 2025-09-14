@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma, PrismaClient, QuestionStatus, TimeCategory } from '@/generated/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 
 const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const { userId } = await auth();
     const { questionId } = await req.json();
 
     if (!userId || !questionId) {
@@ -47,8 +45,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ companies: companies.map(c => c.name) });
     }
 
-    const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const { userId } = await auth();
 
     const company = searchParams.get('company'); // company name
     const title = searchParams.get('title'); // partial or full question title

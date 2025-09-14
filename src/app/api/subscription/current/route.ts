@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import { PLAN_LIMITS } from '@/middleware/subscription-middleware';
 import { SubscriptionStatus } from '@/generated/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -17,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const subscription = await prisma.subscription.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: userId },
       include: { plan: true },
     });
 
@@ -53,9 +52,9 @@ export async function GET(request: NextRequest) {
 
 function isSubscriptionActive(subscription: any): boolean {
   const now = new Date();
-  
-  if (subscription.status !== SubscriptionStatus.ACTIVE && 
-      subscription.status !== SubscriptionStatus.TRIAL) {
+
+  if (subscription.status !== SubscriptionStatus.ACTIVE &&
+    subscription.status !== SubscriptionStatus.TRIAL) {
     return false;
   }
 

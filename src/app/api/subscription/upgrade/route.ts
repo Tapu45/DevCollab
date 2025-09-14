@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import Razorpay from 'razorpay';
-import { PlanType , SubscriptionStatus} from '@/generated/prisma';
+import { PlanType, SubscriptionStatus } from '@/generated/prisma';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -12,9 +11,9 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -42,14 +41,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-     let subscription = await prisma.subscription.findUnique({
-      where: { userId: session.user.id },
+    let subscription = await prisma.subscription.findUnique({
+      where: { userId: userId },
     });
 
     if (!subscription) {
       subscription = await prisma.subscription.create({
         data: {
-          userId: session.user.id,
+          userId: userId,
           planId: plan.id,
           status: SubscriptionStatus.INCOMPLETE,
         },
@@ -60,9 +59,9 @@ export async function POST(request: NextRequest) {
     const order = await razorpay.orders.create({
       amount: Math.round(parseFloat(plan.price.toString()) * 100),
       currency: plan.currency,
-      receipt: `order_${session.user.id}_${Date.now()}`,
+      receipt: `order_${userId}_${Date.now()}`,
       notes: {
-        userId: session.user.id,
+        userId: userId,
         planType: planType,
         planId: plan.id,
       },

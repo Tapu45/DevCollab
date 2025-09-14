@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { validateConnectionRequest } from '@/lib/ValidateConnect';
 import { ConnectionNotificationService } from '@/services/ConnectionNotificationService';
 
@@ -13,8 +12,8 @@ enum ConnectionStatus {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -24,11 +23,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
-  if (!receiverId || receiverId === session.user.id) {
+  if (!receiverId || receiverId === userId) {
     return NextResponse.json({ error: 'Invalid receiver' }, { status: 400 });
   }
 
-  const allowed = await validateConnectionRequest(session.user.id, receiverId);
+  const allowed = await validateConnectionRequest(userId, receiverId);
   if (!allowed) {
     return NextResponse.json({ error: 'Connection request not allowed by receiver privacy settings' }, { status: 403 });
   }
@@ -36,7 +35,7 @@ export async function POST(req: NextRequest) {
   // Prevent duplicate pending requests
   const existing = await prisma.connection.findFirst({
     where: {
-      senderId: session.user.id,
+      senderId: userId,
       receiverId,
       status: ConnectionStatus.PENDING,
     },
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const connection = await prisma.connection.create({
     data: {
-      senderId: session.user.id,
+      senderId: userId,
       receiverId,
       type,
       status: ConnectionStatus.PENDING,
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
   });
 
   await ConnectionNotificationService.notifyConnectionRequest(
-    session.user.id,
+    userId,
     receiverId,
     message
   );
@@ -65,8 +64,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -77,7 +76,7 @@ export async function GET(req: NextRequest) {
     // Received requests
     const pending = await prisma.connection.findMany({
       where: {
-        receiverId: session.user.id,
+        receiverId: userId,
         status: ConnectionStatus.PENDING,
       },
       include: { sender: { select: { id: true, username: true, profilePictureUrl: true } } },
@@ -90,7 +89,7 @@ export async function GET(req: NextRequest) {
     // Sent requests
     const sent = await prisma.connection.findMany({
       where: {
-        senderId: session.user.id,
+        senderId: userId,
         status: ConnectionStatus.PENDING,
       },
       include: { receiver: { select: { id: true, username: true, profilePictureUrl: true } } },
@@ -104,8 +103,8 @@ export async function GET(req: NextRequest) {
     const acceptedConnections = await prisma.connection.findMany({
       where: {
         OR: [
-          { senderId: session.user.id },
-          { receiverId: session.user.id }
+          { senderId: userId },
+          { receiverId: userId }
         ],
         status: ConnectionStatus.ACCEPTED,
       },
@@ -119,7 +118,7 @@ export async function GET(req: NextRequest) {
     // Map to array of "other user" objects
     const accepted = acceptedConnections.map(conn => {
       // If current user is sender, return receiver; else return sender
-      return conn.senderId === session.user.id ? conn.receiver : conn.sender;
+      return conn.senderId === userId ? conn.receiver : conn.sender;
     });
 
     return NextResponse.json({ accepted });
@@ -131,8 +130,8 @@ export async function GET(req: NextRequest) {
       where: {
         status: ConnectionStatus.ACCEPTED,
         OR: [
-          { senderId: session.user.id },
-          { receiverId: session.user.id }
+          { senderId: userId },
+          { receiverId: userId }
         ]
       },
       include: {
@@ -144,7 +143,7 @@ export async function GET(req: NextRequest) {
 
     // Map to array of { user, connectedSince }
     const connected = connections.map(conn => {
-      const isSender = conn.senderId === session.user.id;
+      const isSender = conn.senderId === userId;
       const user = isSender ? conn.receiver : conn.sender;
       return {
         ...user,
@@ -159,8 +158,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -179,7 +178,7 @@ export async function PUT(req: NextRequest) {
     where: { id: connectionId },
   });
 
-  if (!connection || connection.receiverId !== session.user.id || connection.status !== ConnectionStatus.PENDING) {
+  if (!connection || connection.receiverId !== userId || connection.status !== ConnectionStatus.PENDING) {
     return NextResponse.json({ error: 'Connection not found or not allowed' }, { status: 404 });
   }
 
@@ -190,12 +189,12 @@ export async function PUT(req: NextRequest) {
 
   if (response === 'ACCEPTED') {
     await ConnectionNotificationService.notifyConnectionAccepted(
-      session.user.id,
+      userId,
       connection.senderId
     );
   } else if (response === 'DECLINED') {
     await ConnectionNotificationService.notifyConnectionDeclined(
-      session.user.id,
+      userId,
       connection.senderId
     );
   }
@@ -204,8 +203,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -224,7 +223,7 @@ export async function DELETE(req: NextRequest) {
     where: { id: connectionId },
   });
 
-  if (!connection || connection.senderId !== session.user.id || connection.status !== ConnectionStatus.PENDING) {
+  if (!connection || connection.senderId !== userId || connection.status !== ConnectionStatus.PENDING) {
     return NextResponse.json({ error: 'Connection not found or not allowed' }, { status: 404 });
   }
 

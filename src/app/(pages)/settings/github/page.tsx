@@ -29,7 +29,7 @@ export default function GitHubSettingsPage() {
   const installApp = () => {
     const appUrl =
       process.env.NEXT_PUBLIC_GITHUB_APP_URL ||
-      'https://github.com/apps/your-app-name';
+      'https://github.com/apps/dev-collab45';
     window.open(appUrl, '_blank');
   };
 

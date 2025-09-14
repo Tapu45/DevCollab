@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import { PlanType, SubscriptionStatus } from '@/generated/prisma';
 
@@ -144,10 +144,10 @@ export class SubscriptionService {
 
   static isSubscriptionActive(subscription: any): boolean {
     const now = new Date();
-    
+
     // Check if subscription is in active status
-    if (subscription.status !== SubscriptionStatus.ACTIVE && 
-        subscription.status !== SubscriptionStatus.TRIAL) {
+    if (subscription.status !== SubscriptionStatus.ACTIVE &&
+      subscription.status !== SubscriptionStatus.TRIAL) {
       return false;
     }
 
@@ -209,9 +209,9 @@ export async function subscriptionMiddleware(request: NextRequest) {
   }
 
   try {
-    const token = await getToken({ req: request });
-    
-    if (!token?.sub) {
+    const { userId } = await auth();
+
+    if (!userId) {
       // Redirect to login for protected routes
       if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/')) {
         return NextResponse.redirect(new URL('/auth/signin', request.url));
@@ -219,8 +219,8 @@ export async function subscriptionMiddleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const subscription = await SubscriptionService.getUserSubscription(token.sub);
-    
+    const subscription = await SubscriptionService.getUserSubscription(userId);
+
     if (!subscription) {
       return NextResponse.json(
         { error: 'Unable to verify subscription' },
@@ -254,7 +254,7 @@ export async function subscriptionMiddleware(request: NextRequest) {
     const response = NextResponse.next();
     response.headers.set('x-user-plan', subscription.planType);
     response.headers.set('x-subscription-active', subscription.isActive.toString());
-    
+
     return response;
   } catch (error) {
     console.error('Subscription middleware error:', error);

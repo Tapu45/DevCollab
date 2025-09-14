@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 
 interface Suggestions {
     projectIdeas: string[];
@@ -8,13 +8,13 @@ interface Suggestions {
 }
 
 export function useSuggestions() {
-    const { data: session } = useSession();
+    const { user } = useUser();
     const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchSuggestions = async (force = false) => {
-        if (!session?.user?.id) {
+        if (!user?.id) {
             setLoading(false);
             return;
         }
@@ -26,7 +26,7 @@ export function useSuggestions() {
             const method = force ? 'POST' : 'GET';
             const body = force ? JSON.stringify({ force: true }) : undefined;
 
-            const response = await fetch('/api/suggestions', {
+            const response = await fetch('/api/suggestions/project', {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export function useSuggestions() {
 
     useEffect(() => {
         fetchSuggestions();
-    }, [session?.user?.id]);
+    }, [user?.id]);
 
     const refreshSuggestions = () => fetchSuggestions(true);
 

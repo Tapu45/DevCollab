@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { MessagingService } from '@/services/MessagingService';
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: { messageId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const { content } = await req.json();
-    const message = await MessagingService.editMessage(params.messageId, session.user.id, content);
+    const message = await MessagingService.editMessage(params.messageId, userId, content);
 
     return NextResponse.json({ message });
   } catch (error) {
@@ -27,13 +26,13 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { messageId: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    await MessagingService.deleteMessage(params.messageId, session.user.id);
+    await MessagingService.deleteMessage(params.messageId, userId);
     return NextResponse.json({ success: true });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

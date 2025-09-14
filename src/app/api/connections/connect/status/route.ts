@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
+  const targetUserId = searchParams.get('userId');
 
-  if (!userId) {
+  if (!targetUserId) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
 
@@ -20,8 +19,8 @@ export async function GET(req: NextRequest) {
   const connection = await prisma.connection.findFirst({
     where: {
       OR: [
-        { senderId: session.user.id, receiverId: userId },
-        { senderId: userId, receiverId: session.user.id },
+        { senderId: userId, receiverId: targetUserId },
+        { senderId: targetUserId, receiverId: userId },
       ],
     },
     orderBy: { createdAt: 'desc' },

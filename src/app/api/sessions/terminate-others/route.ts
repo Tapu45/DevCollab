@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { sessionService } from '@/services/SessionService';
 
 export async function DELETE(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -16,7 +15,7 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: 'Current session token required' }, { status: 400 });
         }
 
-        const terminatedCount = await sessionService.terminateOtherSessions(session.user.id, currentSessionToken);
+        const terminatedCount = await sessionService.terminateOtherSessions(userId, currentSessionToken);
 
         return NextResponse.json({
             success: true,

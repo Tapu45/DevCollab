@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useSignupContext } from '@/context/SignupContext';
-import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import Script from 'next/script';
 import LeftPanel from '../LeftPanel';
 
@@ -25,15 +24,19 @@ declare global {
 
 function ChoosePlanPageInner() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const userId = searchParams.get('userId');
+  const { user, isLoaded } = useUser();
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { email, password, clearSignupCredentials } = useSignupContext();
+
+  useEffect(() => {
+    if (isLoaded && !user) {
+      router.push('/auth/login');
+    }
+  }, [isLoaded, user, router]);
 
   useEffect(() => {
     async function fetchPlans() {
@@ -68,7 +71,7 @@ function ChoosePlanPageInner() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !selectedPlan) {
+    if (!user?.id || !selectedPlan) {
       setError('Please select a plan.');
       return;
     }
@@ -78,7 +81,7 @@ function ChoosePlanPageInner() {
       const res = await fetch('/api/auth/choose-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, planId: selectedPlan }),
+        body: JSON.stringify({ planId: selectedPlan }), // Remove userId, let API get it from Clerk
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to choose plan');
@@ -105,12 +108,12 @@ function ChoosePlanPageInner() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 planId: selectedPlan,
-                userId,
+                userId: user.id, // Use Clerk user ID
               }),
             });
             router.push('/auth/welcome');
           },
-          prefill: { email: email || '' },
+          prefill: { email: user?.emailAddresses[0]?.emailAddress || '' },
           theme: { color: '#3399cc' },
         };
         // @ts-ignore
@@ -131,6 +134,26 @@ function ChoosePlanPageInner() {
       setSubmitting(false);
     }
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex bg-[var(--background)] dark:bg-[var(--background)] transition-colors duration-300">
+        <div className="hidden md:block w-[25%]">
+          <LeftPanel currentStep={2} />
+        </div>
+        <div className="w-[75%] flex-1 flex flex-col justify-center items-center px-4 sm:px-8 md:px-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
+            <p className="text-[var(--muted-foreground)]">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex bg-[var(--background)] dark:bg-[var(--background)] transition-colors duration-300">

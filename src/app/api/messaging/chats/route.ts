@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { MessagingService } from '@/services/MessagingService';
 import { ChatType } from '@/generated/prisma';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -16,7 +15,7 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0');
 
   try {
-    const chats = await MessagingService.getUserChats(session.user.id, {
+    const chats = await MessagingService.getUserChats(userId, {
       type,
       limit,
       offset,
@@ -29,14 +28,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const data = await req.json();
-    const chat = await MessagingService.createChat(data, session.user.id);
+    const chat = await MessagingService.createChat(data, userId);
 
     return NextResponse.json({ chat }, { status: 201 });
   } catch (error) {

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { githubAppService } from '@/services/Integration/GitHubAppService';
 
 export async function POST(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -16,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        await githubAppService.installApp(session.user.id, installation_id);
+        await githubAppService.installApp(userId, installation_id);
         return NextResponse.json({ success: true, message: 'GitHub App installed successfully' });
     } catch (error) {
         console.error('GitHub App installation error:', error);
@@ -25,8 +24,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

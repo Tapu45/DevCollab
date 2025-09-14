@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import crypto from 'crypto';
 import { SubscriptionStatus } from '@/generated/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Find subscription and invoice
     const subscription = await prisma.subscription.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: userId },
       include: { plan: true }
     });
 

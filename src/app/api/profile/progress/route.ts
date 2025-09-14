@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/Prisma";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
-
+import { auth } from '@clerk/nextjs/server';
 
 async function getCurrentUser() {
-  const session = await getServerSession(authOptions);
-  return session?.user || null;
+  const { userId } = await auth();
+  return userId ? { id: userId } : null;
 }
 
 // GET endpoint to fetch progress
@@ -21,8 +19,8 @@ export async function GET(req: NextRequest) {
       where: { userId: user.id },
     });
 
-    return NextResponse.json({ 
-      section: progress?.currentSection || "basic" 
+    return NextResponse.json({
+      section: progress?.currentSection || "basic"
     });
   } catch (error) {
     console.error("Error fetching profile progress:", error);
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const progress = await prisma.profileProgress.upsert({
       where: { userId: user.id as string },
-      update: { 
+      update: {
         currentSection: section,
         lastUpdated: new Date()
       },

@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { sessionService } from '@/services/SessionService';
 
 export async function GET(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-        const sessions = await sessionService.getUserSessions(session.user.id);
+        const sessions = await sessionService.getUserSessions(userId);
         return NextResponse.json({ sessions });
     } catch (error) {
         console.error('Get sessions error:', error);

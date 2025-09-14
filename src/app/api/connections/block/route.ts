@@ -1,29 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { action, userId } = await req.json();
+  const { action, userId: targetUserId } = await req.json();
 
   if (action !== 'block') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
-  if (!userId || userId === session.user.id) {
+  if (!targetUserId || targetUserId === userId) {
     return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
   }
 
   // Check if already blocked
   const existing = await prisma.connection.findFirst({
     where: {
-      senderId: session.user.id,
-      receiverId: userId,
+      senderId: userId,
+      receiverId: targetUserId,
       status: 'BLOCKED',
     },
   });
@@ -35,8 +34,8 @@ export async function POST(req: NextRequest) {
   const connection = await prisma.connection.upsert({
     where: {
       senderId_receiverId: {
-        senderId: session.user.id,
-        receiverId: userId,
+        senderId: userId,
+        receiverId: targetUserId,
       },
     },
     update: {
@@ -45,8 +44,8 @@ export async function POST(req: NextRequest) {
       message: 'User blocked',
     },
     create: {
-      senderId: session.user.id,
-      receiverId: userId,
+      senderId: userId,
+      receiverId: targetUserId,
       status: 'BLOCKED',
       type: 'COLLABORATOR',
       message: 'User blocked',
@@ -57,26 +56,26 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { action, userId } = await req.json();
+  const { action, userId: targetUserId } = await req.json();
 
   if (action !== 'unblock') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
-  if (!userId || userId === session.user.id) {
+  if (!targetUserId || targetUserId === userId) {
     return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
   }
 
   // Find blocked connection
   const connection = await prisma.connection.findFirst({
     where: {
-      senderId: session.user.id,
-      receiverId: userId,
+      senderId: userId,
+      receiverId: targetUserId,
       status: 'BLOCKED',
     },
   });
@@ -94,8 +93,8 @@ export async function DELETE(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -106,7 +105,7 @@ export async function GET(req: NextRequest) {
     // List users blocked by current user
     const blocked = await prisma.connection.findMany({
       where: {
-        senderId: session.user.id,
+        senderId: userId,
         status: 'BLOCKED',
       },
       include: {

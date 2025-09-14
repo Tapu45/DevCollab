@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { sessionService } from '@/services/SessionService';
 
 export async function DELETE(
     req: NextRequest,
     { params }: { params: { sessionId: string } }
 ) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-        const success = await sessionService.terminateSession(params.sessionId, session.user.id);
+        const success = await sessionService.terminateSession(params.sessionId, userId);
 
         if (!success) {
             return NextResponse.json({ error: 'Session not found' }, { status: 404 });

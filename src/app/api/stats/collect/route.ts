@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import { collectGitHubStats } from '@/services/StatsCollectionService';
 import { collectGitLabStats } from '@/services/StatsCollectionService';
@@ -8,8 +7,8 @@ import { collectLinkedInStats } from '@/services/StatsCollectionService';
 import { collectLeetCodeStats } from '@/services/StatsCollectionService';
 
 export async function POST(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -20,16 +19,16 @@ export async function POST(req: NextRequest) {
 
         switch (provider) {
             case 'github':
-                result = await collectGitHubStats(session.user.id, forceRefresh);
+                result = await collectGitHubStats(userId, forceRefresh);
                 break;
             case 'gitlab':
-                result = await collectGitLabStats(session.user.id, forceRefresh);
+                result = await collectGitLabStats(userId, forceRefresh);
                 break;
             case 'linkedin':
-                result = await collectLinkedInStats(session.user.id, forceRefresh);
+                result = await collectLinkedInStats(userId, forceRefresh);
                 break;
             case 'leetcode':
-                result = await collectLeetCodeStats(session.user.id, forceRefresh);
+                result = await collectLeetCodeStats(userId, forceRefresh);
                 break;
             default:
                 return NextResponse.json({ error: 'Unsupported provider' }, { status: 400 });
@@ -43,8 +42,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -58,13 +57,13 @@ export async function GET(req: NextRequest) {
             // Get stats for specific provider
             if (['github', 'gitlab', 'linkedin'].includes(provider)) {
                 const account = await prisma.account.findFirst({
-                    where: { userId: session.user.id, provider },
+                    where: { userId: userId, provider },
                     include: { stats: true }
                 });
                 stats = account?.stats || [];
             } else {
                 const profile = await prisma.externalProfile.findFirst({
-                    where: { userId: session.user.id, provider },
+                    where: { userId: userId, provider },
                     include: { stats: true }
                 });
                 stats = profile?.stats || [];
@@ -73,11 +72,11 @@ export async function GET(req: NextRequest) {
             // Get all stats
             const [accounts, profiles] = await Promise.all([
                 prisma.account.findMany({
-                    where: { userId: session.user.id },
+                    where: { userId: userId },
                     include: { stats: true }
                 }),
                 prisma.externalProfile.findMany({
-                    where: { userId: session.user.id },
+                    where: { userId: userId },
                     include: { stats: true }
                 })
             ]);

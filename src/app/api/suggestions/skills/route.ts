@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUsersBySkills } from '@/utils/Pinecone';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 
 export async function GET(request: NextRequest) {
     try {
         // Get authenticated user
-        const session = await getServerSession(authOptions);
+        const { userId } = await auth();
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }
 

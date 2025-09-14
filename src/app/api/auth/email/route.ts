@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Mark user as verified
-   const updatedUser = await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { email: verification.identifier },
     data: { emailVerified: new Date() }
   });
@@ -26,8 +26,24 @@ export async function POST(req: NextRequest) {
     where: { token: otp }
   });
 
-  return NextResponse.json({
+  // set HttpOnly grace cookie for 7 days (server-side)
+  const days = 7;
+  const maxAge = Math.floor(days * 24 * 60 * 60);
+  const until = Date.now() + maxAge * 1000;
+
+  const res = NextResponse.json({
     message: 'Email verified successfully',
-    userId: updatedUser.id
+    userId: updatedUser.id,
+    until,
+  }, { status: 200 });
+
+  res.cookies.set('devcollab_grace_until', String(until), {
+    httpOnly: true,
+    maxAge,
+    path: '/',
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
   });
+
+  return res;
 }

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import {prisma} from '@/lib/Prisma';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/Prisma';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -20,7 +19,7 @@ export async function POST(
     const participant = await prisma.chatParticipant.findFirst({
       where: {
         chatId,
-        userId: session.user.id,
+        userId: userId,
         isAdmin: true,
         isActive: true
       }
@@ -45,7 +44,7 @@ export async function POST(
       await prisma.message.create({
         data: {
           chatId,
-          senderId: session.user.id,
+          senderId: userId,
           content: `Added ${newParticipants.count} new participant(s) to the group`,
           type: 'SYSTEM'
         }
@@ -64,25 +63,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId } = await request.json();
+    const { userId: targetUserId } = await request.json();
     const chatId = params.id;
 
     // Verify user is admin or removing themselves
     const isAdmin = await prisma.chatParticipant.findFirst({
       where: {
         chatId,
-        userId: session.user.id,
+        userId: userId,
         isAdmin: true,
         isActive: true
       }
     });
 
-    if (!isAdmin && userId !== session.user.id) {
+    if (!isAdmin && targetUserId !== userId) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
@@ -90,7 +89,7 @@ export async function DELETE(
     await prisma.chatParticipant.updateMany({
       where: {
         chatId,
-        userId
+        userId: targetUserId
       },
       data: {
         isActive: false,
@@ -100,14 +99,14 @@ export async function DELETE(
 
     // Create system message
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: targetUserId },
       select: { displayName: true, username: true }
     });
 
     await prisma.message.create({
       data: {
         chatId,
-        senderId: session.user.id,
+        senderId: userId,
         content: `${user?.displayName || user?.username} left the group`,
         type: 'SYSTEM'
       }

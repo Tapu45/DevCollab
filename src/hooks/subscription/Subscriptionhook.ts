@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import { PlanType, SubscriptionStatus } from '@/generated/prisma';
 import { toast } from 'sonner';
 
@@ -95,7 +95,7 @@ export interface UsageStats {
 }
 
 export function useSubscription() {
-  const { data: session } = useSession();
+  const { user } = useUser();
   const queryClient = useQueryClient();
 
   const {
@@ -103,7 +103,7 @@ export function useSubscription() {
     isLoading,
     error
   } = useQuery({
-    queryKey: ['subscription', session?.user?.id],
+    queryKey: ['subscription', user?.id],
     queryFn: async (): Promise<UserSubscriptionInfo> => {
       const response = await fetch('/api/subscription/current');
       if (!response.ok) {
@@ -111,14 +111,14 @@ export function useSubscription() {
       }
       return response.json();
     },
-    enabled: !!session?.user?.id,
+    enabled: !!user?.id,
   });
 
   const {
     data: usage,
     isLoading: isUsageLoading
   } = useQuery({
-    queryKey: ['usage', session?.user?.id],
+    queryKey: ['usage', user?.id],
     queryFn: async (): Promise<UsageStats> => {
       const response = await fetch('/api/subscription/usage');
       if (!response.ok) {
@@ -126,7 +126,7 @@ export function useSubscription() {
       }
       return response.json();
     },
-    enabled: !!session?.user?.id,
+    enabled: !!user?.id,
   });
 
   const upgradeMutation = useMutation({
@@ -193,7 +193,7 @@ export function useSubscription() {
               razorpay_signature: response.razorpay_signature,
             }),
           });
-          
+
           if (verifyResponse.ok) {
             toast.success('Payment successful! Your subscription has been upgraded.');
             queryClient.invalidateQueries({ queryKey: ['subscription'] });
@@ -205,8 +205,8 @@ export function useSubscription() {
         }
       },
       prefill: {
-        email: session?.user?.email,
-        name: session?.user?.name,
+        email: user?.primaryEmailAddress?.emailAddress,
+        name: user?.fullName,
       },
       theme: {
         color: '#3b82f6',
@@ -225,22 +225,22 @@ export function useSubscription() {
 
   const canPerformAction = (action: keyof typeof PLAN_LIMITS.FREE, currentUsage?: number): boolean => {
     if (!subscription || !usage) return false;
-    
+
     const limit = subscription.limits[action] as number;
     if (limit === -1) return true; // Unlimited
-    
+
     const current = currentUsage ?? (usage as any)[action.replace('max', '').toLowerCase()];
     return current < limit;
   };
 
   const getUsagePercentage = (usageType: keyof UsageStats): number => {
     if (!subscription || !usage) return 0;
-    
+
     const limitKey = `max${usageType.charAt(0).toUpperCase() + usageType.slice(1)}` as keyof typeof PLAN_LIMITS.FREE;
     const limit = subscription.limits[limitKey] as number;
-    
+
     if (limit === -1) return 0; // Unlimited
-    
+
     const current = usage[usageType];
     return Math.min((current / limit) * 100, 100);
   };
@@ -251,12 +251,12 @@ export function useSubscription() {
 
   const getRemainingQuota = (quotaType: keyof UsageStats): number => {
     if (!subscription || !usage) return 0;
-    
+
     const limitKey = `max${quotaType.charAt(0).toUpperCase() + quotaType.slice(1)}` as keyof typeof PLAN_LIMITS.FREE;
     const limit = subscription.limits[limitKey] as number;
-    
+
     if (limit === -1) return Infinity; // Unlimited
-    
+
     const current = usage[quotaType];
     return Math.max(limit - current, 0);
   };
@@ -266,20 +266,20 @@ export function useSubscription() {
     usage,
     isLoading: isLoading || isUsageLoading,
     error,
-    
+
     // Actions
     upgrade: upgradeMutation.mutate,
     cancel: cancelMutation.mutate,
     isUpgrading: upgradeMutation.isPending,
     isCanceling: cancelMutation.isPending,
-    
+
     // Helper functions
     hasFeature,
     canPerformAction,
     getUsagePercentage,
     isNearLimit,
     getRemainingQuota,
-    
+
     // Quick access to common checks
     canCreateProject: () => canPerformAction('maxProjects', usage?.projects),
     canAddConnection: () => canPerformAction('maxConnections', usage?.connections),

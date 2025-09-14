@@ -1,31 +1,39 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSignupContext } from '@/context/SignupContext';
-import { signIn } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import LeftPanel from '../LeftPanel';
 
 export default function WelcomePage() {
   const [dark, setDark] = useState(true);
   const router = useRouter();
-  const { email, password, clearSignupCredentials } = useSignupContext();
+  const { user, isLoaded } = useUser();
 
   useEffect(() => {
-    async function autoLogin() {
-      if (email && password) {
-        const loginRes = await signIn('credentials', {
-          emailOrUsername: email,
-          password,
-          redirect: false,
-        });
-        clearSignupCredentials();
-        if (loginRes?.error) {
-          router.push('/auth/login');
-        }
-      }
+    if (isLoaded && !user) {
+      router.push('/auth/login');
     }
-    autoLogin();
-  }, [email, password, clearSignupCredentials, router]);
+  }, [isLoaded, user, router]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex bg-[var(--background)] text-[var(--foreground)] font-sans">
+        <div className="w-[25%] min-h-screen">
+          <LeftPanel currentStep={3} />
+        </div>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)] mx-auto mb-4"></div>
+            <p className="text-[var(--muted-foreground)]">Loading...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex bg-[var(--background)] text-[var(--foreground)] font-sans">
@@ -51,10 +59,10 @@ export default function WelcomePage() {
           {/* All content below video */}
           <div className="flex flex-col items-center gap-6 w-full">
             <p className="subtitle text-lg text-center">
-              You’ve just joined a community of awesome developers.
+              You've just joined a community of awesome developers.
               <br />
               <span className="highlight font-semibold text-[var(--primary)]">
-                Let’s build, collaborate, and maybe break production together!
+                Let's build, collaborate, and maybe break production together!
               </span>
             </p>
             <a

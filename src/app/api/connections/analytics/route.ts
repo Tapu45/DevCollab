@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { ConnectionType } from '@/generated/prisma';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -15,7 +14,6 @@ export async function GET(req: NextRequest) {
 
   // Overview: total, accepted, pending, blocked, declined
   if (action === 'overview') {
-    const userId = session.user.id;
     const total = await prisma.connection.count({
       where: {
         OR: [{ senderId: userId }, { receiverId: userId }],
@@ -50,7 +48,6 @@ export async function GET(req: NextRequest) {
 
   // Growth: connections created per month (last 6 months)
   if (action === 'growth') {
-    const userId = session.user.id;
     const now = new Date();
     const months = Array.from({ length: 6 }, (_, i) => {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -83,7 +80,6 @@ export async function GET(req: NextRequest) {
 
   // Engagement: accepted connections with message count (basic metric)
   if (action === 'engagement') {
-    const userId = session.user.id;
     // Count accepted connections
     const acceptedConnections = await prisma.connection.findMany({
       where: {
@@ -101,7 +97,6 @@ export async function GET(req: NextRequest) {
 
   // Categories: distribution of connection types
   if (action === 'categories') {
-    const userId = session.user.id;
     const types = [
       'COLLABORATOR',
       'MENTOR',
