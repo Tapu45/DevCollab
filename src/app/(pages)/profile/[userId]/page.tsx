@@ -36,10 +36,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useSession } from 'next-auth/react';
 import ConnectionButton from '../lazy/ConnectionButton';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { useUser } from '@clerk/nextjs';
 
 const fetchProfile = async (userId: string): Promise<UserProfile> => {
   const res = await fetch(`/api/profile?userId=${userId}`);
@@ -104,7 +104,7 @@ const itemVariants = {
 
 export default function ViewUserProfile() {
   const { userId } = useParams();
-  const { data: session } = useSession();
+  const { user, isLoaded } = useUser(); 
 
   const {
     data: profile,
@@ -119,9 +119,9 @@ export default function ViewUserProfile() {
     refetchOnWindowFocus: false,
   });
 
-  if (isLoading) {
-    return <Loader />;
-  }
+   if (isLoading || !isLoaded) {
+     return <Loader />;
+   }
 
   if (isError) {
     return (
@@ -305,7 +305,7 @@ export default function ViewUserProfile() {
                       </Button>
                     )}
                     {/* Connection Button */}
-                    {session?.user?.id && session.user.id !== userId && (
+                    {user?.id && user.id !== userId && (
                       <ConnectionButton
                         userId={userId as string}
                         className="shadow-sm hover:shadow-md transition-shadow duration-200 ml-2"

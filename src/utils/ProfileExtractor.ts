@@ -1,4 +1,4 @@
-import { prisma } from "../lib/Prisma";
+import { prisma } from "@/lib/Prisma";
 import {  SkillCategory } from "../generated/prisma/index.js";
 
 export async function extractUserProfileData(userId: string) {

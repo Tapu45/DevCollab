@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
+import { generateUserSuggestions } from "@/trigger/generateUserSuggestions";
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
         });
 
         const displayName = firstName && lastName ? `${firstName} ${lastName}` : firstName || email.split('@')[0];
+        let isNewUser = false;
 
         if (!user) {
             // Create new user
@@ -32,15 +34,16 @@ export async function POST(req: NextRequest) {
                     firstName: firstName,
                     lastName: lastName,
                     profilePictureUrl: imageUrl,
-                    emailVerified: new Date(), // Clerk handles email verification
+                    emailVerified: new Date(),
                 },
             });
+            isNewUser = true;
         } else {
             // Update existing user
             user = await prisma.user.update({
                 where: { id: user.id },
                 data: {
-                    id: clerkId, // Update to use Clerk ID
+                    id: clerkId,
                     displayName: displayName,
                     firstName: firstName || user.firstName,
                     lastName: lastName || user.lastName,
@@ -48,6 +51,17 @@ export async function POST(req: NextRequest) {
                     emailVerified: new Date(),
                 },
             });
+        }
+
+        // Trigger suggestions only for new users
+        if (isNewUser) {
+            try {
+                await generateUserSuggestions.trigger({ userId: clerkId });
+                console.log(`Triggered suggestions for new user: ${clerkId}`);
+            } catch (error) {
+                console.error('Failed to trigger suggestions for new user:', error);
+                // Don't fail the sync if suggestions fail
+            }
         }
 
         return NextResponse.json({ user });

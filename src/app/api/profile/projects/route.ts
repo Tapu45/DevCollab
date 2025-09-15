@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
 import { getAuthSession } from '@/utils/Authorize';
+import { invalidateSuggestionsOnUpdate } from '@/services/InvalidateSuggestionCache';
 
 // Define enums as TypeScript union types (keep in sync with your schema)
 type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
@@ -91,6 +92,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  await invalidateSuggestionsOnUpdate(session.user.id, 'projects');
+
   return NextResponse.json(project, { status: 201 });
 }
 
@@ -121,6 +124,8 @@ export async function PUT(req: NextRequest) {
     data: updateData,
   });
 
+  await invalidateSuggestionsOnUpdate(session.user.id, 'projects');
+
   return NextResponse.json(updated);
 }
 
@@ -147,6 +152,8 @@ export async function DELETE(req: NextRequest) {
   await prisma.project.delete({
     where: { id },
   });
+
+  await invalidateSuggestionsOnUpdate(session.user.id, 'projects');
 
   return NextResponse.json({ message: 'Project deleted' });
 }

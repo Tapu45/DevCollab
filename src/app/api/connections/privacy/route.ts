@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/Prisma';
+import { auth } from '@clerk/nextjs/server';
 
 export async function PUT(req: Request) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const data = await req.json();
@@ -28,7 +19,7 @@ export async function PUT(req: Request) {
     } = data;
 
     const updatedPrivacy = await prisma.connectionPrivacy.upsert({
-      where: { userId: user.id },
+      where: { userId },
       update: {
         connectionPrivacyLevel,
         connectionRequestLevel,
@@ -37,12 +28,12 @@ export async function PUT(req: Request) {
         blockedUserIds
       },
       create: {
-        userId: user.id,
+        userId,
         connectionPrivacyLevel,
         connectionRequestLevel,
         hideConnections,
         autoDeclineRequests,
-        blockedUserIds
+        blockedUserIds: blockedUserIds ?? []
       },
       select: {
         connectionPrivacyLevel: true,
@@ -64,22 +55,13 @@ export async function PUT(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession();
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const privacySettings = await prisma.connectionPrivacy.findUnique({
-      where: { userId: user.id },
+      where: { userId },
       select: {
         connectionPrivacyLevel: true,
         connectionRequestLevel: true,

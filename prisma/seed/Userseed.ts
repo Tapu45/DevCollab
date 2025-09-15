@@ -8,6 +8,81 @@ const prisma = new PrismaClient({
     log: ['error', 'warn']
 });
 
+// Clerk Admin API (via REST) — no extra deps required
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
+const CLERK_BASE_URL = process.env.CLERK_API_URL || 'https://api.clerk.com';
+
+if (!CLERK_SECRET_KEY) {
+    console.warn('CLERK_SECRET_KEY is not set; Clerk user creation will be skipped.');
+}
+
+type ClerkUser = {
+    id: string;
+    email_addresses?: Array<{ email_address: string }>;
+    username?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    image_url?: string | null;
+};
+
+async function clerkRequest<T = any>(path: string, options: RequestInit): Promise<T> {
+    if (!CLERK_SECRET_KEY) throw new Error('Missing CLERK_SECRET_KEY');
+    const res = await fetch(`${CLERK_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+            'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        }
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Clerk API error ${res.status}: ${text}`);
+    }
+    return res.json() as Promise<T>;
+}
+
+async function findClerkUserByEmail(email: string): Promise<ClerkUser | null> {
+    if (!CLERK_SECRET_KEY) return null;
+    const q = encodeURIComponent(email);
+    const data = await clerkRequest<{ data: ClerkUser[] }>(`/v1/users?email_address=${q}`, { method: 'GET' });
+    return data?.data?.[0] || null;
+}
+
+async function createClerkUser(params: {
+    email: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+    imageUrl?: string | null;
+}): Promise<ClerkUser | null> {
+    if (!CLERK_SECRET_KEY) return null;
+    // Create user without password (OTP/magic link enabled in Clerk)
+    const body = {
+        email_address: params.email,
+        username: params.username,
+        first_name: params.firstName,
+        last_name: params.lastName,
+        // You can set 'skip_email_verification' to false to exercise OTP; leaving verification to flow.
+    };
+    const user = await clerkRequest<ClerkUser>('/v1/users', {
+        method: 'POST',
+        body: JSON.stringify(body)
+    });
+    // Optionally update image
+    if (params.imageUrl) {
+        try {
+            await clerkRequest(`/v1/users/${user.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ image_url: params.imageUrl })
+            });
+        } catch {
+            // best-effort; ignore
+        }
+    }
+    return user;
+}
+
 // Tech stack options
 const programmingLanguages = ['JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'Go', 'Rust', 'Ruby', 'PHP', 'Swift', 'Kotlin'];
 const frameworks = ['React', 'Next.js', 'Vue.js', 'Angular', 'Django', 'Flask', 'Express', 'Spring Boot', 'ASP.NET', 'Laravel', 'Ruby on Rails'];
@@ -456,36 +531,58 @@ async function seedUsers() {
                 });
 
                 // Upsert user suggestion cache
-                await prisma.userSuggestionCache.upsert({
+                await prisma.userSimilarCache.upsert({
                     where: { userId: createdUser.id },
-                    update: { updatedAt: new Date() },
+                    update: {
+                        data: { users: [], total: 0 },
+                        updatedAt: new Date(),
+                    },
                     create: {
                         userId: createdUser.id,
-                        data: { suggestions: [] },
-                        updatedAt: new Date()
+                        data: { users: [], total: 0 },
                     }
                 });
-
-                // Seed recent activity
-                const actions = ['LOGIN', 'PROFILE_UPDATE', 'PROJECT_CREATE', 'CONNECTION_ACCEPT', 'SKILL_ADD'];
-                for (let j = 0; j < 2 + Math.floor(Math.random() * 3); j++) {
-                    await prisma.userActivity.create({
-                        data: {
-                            userId: createdUser.id,
-                            action: actions[Math.floor(Math.random() * actions.length)],
-                            resource: null,
-                            metadata: {},
-                            ipAddress: `192.168.1.${Math.floor(Math.random() * 255)}`,
-                            userAgent: 'Mozilla/5.0'
-                        }
-                    });
-                }
 
                 // Store profile in Pinecone
                 const pineconeSuccess = await storeProfileInPinecone(createdUser);
                 if (!pineconeSuccess) {
                     console.warn(`Embedding failed for ${createdUser.email}, but user updated.`);
                 }
+
+                // Ensure Clerk user exists (to be able to sign in via email OTP)
+                try {
+                    const normalizedEmail = createdUser.email;
+                    const existing = await findClerkUserByEmail(normalizedEmail);
+                    if (!existing) {
+                        await createClerkUser({
+                            email: normalizedEmail,
+                            username: createdUser.username,
+                            firstName: createdUser.firstName || createdUser.displayName?.split(' ')[0] || 'Seed',
+                            lastName: createdUser.lastName || createdUser.displayName?.split(' ')[1] || 'User',
+                            imageUrl: createdUser.profilePictureUrl || null
+                        });
+                        console.log(`Clerk user created for ${normalizedEmail}`);
+                    } else {
+                        // Optional: update username or image if missing
+                        try {
+                            await clerkRequest(`/v1/users/${existing.id}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({
+                                    username: existing.username || createdUser.username,
+                                    first_name: existing.first_name || createdUser.firstName,
+                                    last_name: existing.last_name || createdUser.lastName,
+                                    image_url: existing.image_url || createdUser.profilePictureUrl
+                                })
+                            });
+                        } catch {
+                            // ignore
+                        }
+                        console.log(`Clerk user exists for ${normalizedEmail}`);
+                    }
+                } catch (e: any) {
+                    console.error(`Failed to sync Clerk user for ${createdUser.email}:`, e?.message || e);
+                }
+
                 console.log(`Updated seed user ${i}: ${createdUser.email}`);
             }
 

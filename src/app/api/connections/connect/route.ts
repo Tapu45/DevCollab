@@ -141,13 +141,15 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Map to array of { user, connectedSince }
+    // Map to array of { user, connectedSince, type, connectionId }
     const connected = connections.map(conn => {
       const isSender = conn.senderId === userId;
       const user = isSender ? conn.receiver : conn.sender;
       return {
         ...user,
-        connectedSince: conn.createdAt
+        connectedSince: conn.createdAt,
+        type: conn.type,
+        connectionId: conn.id,
       };
     });
 
@@ -208,28 +210,60 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { action, connectionId } = await req.json();
+  const { action, connectionId, targetUserId } = await req.json();
 
-  if (action !== 'withdraw') {
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  if (action === 'withdraw') {
+    if (!connectionId) {
+      return NextResponse.json({ error: 'Missing connectionId' }, { status: 400 });
+    }
+
+    // Only sender can withdraw
+    const connection = await prisma.connection.findUnique({
+      where: { id: connectionId },
+    });
+
+    if (!connection || connection.senderId !== userId || connection.status !== ConnectionStatus.PENDING) {
+      return NextResponse.json({ error: 'Connection not found or not allowed' }, { status: 404 });
+    }
+
+    await prisma.connection.delete({
+      where: { id: connectionId },
+    });
+
+    return NextResponse.json({ success: true });
   }
 
-  if (!connectionId) {
-    return NextResponse.json({ error: 'Missing connectionId' }, { status: 400 });
+  if (action === 'disconnect') {
+    if (!connectionId && !targetUserId) {
+      return NextResponse.json({ error: 'Provide connectionId or targetUserId' }, { status: 400 });
+    }
+
+    // Resolve the accepted connection
+    const connection = connectionId
+      ? await prisma.connection.findFirst({
+        where: { id: connectionId, status: 'ACCEPTED' },
+      })
+      : await prisma.connection.findFirst({
+        where: {
+          status: 'ACCEPTED',
+          OR: [
+            { senderId: userId, receiverId: targetUserId },
+            { senderId: targetUserId as string, receiverId: userId },
+          ],
+        },
+      });
+
+    if (!connection) {
+      return NextResponse.json({ error: 'Connection not found' }, { status: 404 });
+    }
+
+    if (connection.senderId !== userId && connection.receiverId !== userId) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 });
+    }
+
+    await prisma.connection.delete({ where: { id: connection.id } });
+    return NextResponse.json({ success: true });
   }
 
-  // Only sender can withdraw
-  const connection = await prisma.connection.findUnique({
-    where: { id: connectionId },
-  });
-
-  if (!connection || connection.senderId !== userId || connection.status !== ConnectionStatus.PENDING) {
-    return NextResponse.json({ error: 'Connection not found or not allowed' }, { status: 404 });
-  }
-
-  await prisma.connection.delete({
-    where: { id: connectionId },
-  });
-
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 }

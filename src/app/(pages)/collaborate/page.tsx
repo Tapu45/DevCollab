@@ -19,7 +19,9 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { usePage } from '@/context/PageContext';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { ProjectSkillSuggestions } from './DeveloperSuggestions';
+import { useRegisterSearchSource } from '@/context/SearchContext';
 
 interface SuggestedUser {
   userId: string;
@@ -94,15 +96,12 @@ const cardHoverVariants = {
   },
 };
 
-export default function DeveloperSuggestions() {
+export default function CollaboratePage() {
   const router = useRouter();
   const { setPageInfo } = usePage();
 
   useEffect(() => {
-    setPageInfo(
-      'Collaborate',
-      'Discover your perfect developer match',
-    );
+    setPageInfo('Collaborate', 'Discover your perfect developer match');
   }, [setPageInfo]);
 
   const { data, isLoading, isError, error } = useQuery({
@@ -111,6 +110,43 @@ export default function DeveloperSuggestions() {
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
+
+  // Always register the search source (no conditional hooks)
+  const peopleSource = useMemo(
+    () => ({
+      id: 'collaborate-people',
+      label: 'People',
+      search: async (q: string, signal?: AbortSignal) => {
+        if (!q || q.trim().length < 2)
+          return { type: 'people', items: [], priority: 120 };
+        const res = await fetch(
+          `/api/search/users?q=${encodeURIComponent(q)}&limit=10`,
+          { signal },
+        );
+        const data = await res.json();
+        const items = (data.users || []).map((u: any) => ({
+          id: u.id,
+          title: u.displayName || u.username || 'User',
+          subtitle: u.bio,
+          avatarUrl: u.profilePictureUrl,
+          href: `/profile/${u.id}`,
+        }));
+
+        // Add “Search more…” CTA
+        items.push({
+          id: `search-more-${q}`,
+          title: `Search more for "${q}"`,
+          subtitle: 'Open advanced filters',
+          href: `/collaborate/search?q=${encodeURIComponent(q)}`,
+        });
+
+        return { type: 'people', items, priority: 120 };
+      },
+    }),
+    [],
+  );
+
+  useRegisterSearchSource(peopleSource);
 
   if (isLoading) return <Loader />;
 
@@ -222,12 +258,12 @@ export default function DeveloperSuggestions() {
           </motion.p>
         </div>
 
-        {/* Users Grid */}
+        {/* User Suggestions Grid - TOP SECTION */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16"
         >
           {users.map((user, index) => (
             <motion.div
@@ -247,10 +283,7 @@ export default function DeveloperSuggestions() {
                       >
                         <Avatar className="h-16 w-16 ring-4 ring-background shadow-lg">
                           <AvatarImage
-                            src={
-                              user.profile?.profilePictureUrl ||               
-                              ''
-                            }
+                            src={user.profile?.profilePictureUrl || ''}
                             alt={user.profile?.displayName || ''}
                           />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
@@ -347,6 +380,16 @@ export default function DeveloperSuggestions() {
               </Card>
             </motion.div>
           ))}
+        </motion.div>
+
+        {/* Project & Skill Suggestions Component - BOTTOM SECTION */}
+        {/* Only show when we have successful user suggestions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <ProjectSkillSuggestions />
         </motion.div>
       </motion.div>
     </div>

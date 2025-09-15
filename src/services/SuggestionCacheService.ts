@@ -1,10 +1,12 @@
-import { prisma } from "@/lib/Prisma";
+import { getPrismaClient } from "@/trigger/PrismaService";
 import { AIService } from "./AIService";
 
 export class SuggestionCacheService {
     private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
     static async getUserSuggestions(userId: string) {
+        const prisma = await getPrismaClient();
+
         const cache = await prisma.userSuggestionCache.findUnique({
             where: { userId },
             include: { user: { include: { skills: true, ownedProjects: true } } }
@@ -23,6 +25,8 @@ export class SuggestionCacheService {
     }
 
     static async generateAndCacheSuggestions(userId: string) {
+        const prisma = await getPrismaClient();
+
         const user = await prisma.user.findUnique({
             where: { id: userId },
             include: {
@@ -33,8 +37,8 @@ export class SuggestionCacheService {
 
         if (!user) throw new Error("User not found");
 
-        const skills = user.skills.map(s => s.name);
-        const projects = user.ownedProjects.map(p => ({
+        const skills = user.skills.map((s: { name: any; }) => s.name);
+        const projects = user.ownedProjects.map((p: { title: any; description: any; }) => ({
             title: p.title,
             description: p.description || ""
         }));
@@ -71,6 +75,8 @@ export class SuggestionCacheService {
     }
 
     static async invalidateUserCache(userId: string) {
+        const prisma = await getPrismaClient();
+
         await prisma.userSuggestionCache.updateMany({
             where: { userId },
             data: { isValid: false }

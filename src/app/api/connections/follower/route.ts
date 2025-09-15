@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -13,12 +12,12 @@ export async function GET(req: NextRequest) {
   const action = searchParams.get('action');
 
   if (action === 'followers') {
-    // Users who follow the current user
+    // Users who follow the current user (modeled as FRIEND accepted inbound)
     const followers = await prisma.connection.findMany({
       where: {
-        receiverId: session.user.id,
+        receiverId: userId,
         status: 'ACCEPTED',
-        type: 'FRIEND', // or 'FOLLOWER' if you use a specific type
+        type: 'FRIEND',
       },
       include: {
         sender: { select: { id: true, username: true, profilePictureUrl: true } },
@@ -29,12 +28,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (action === 'following') {
-    // Users whom the current user follows
+    // Users whom the current user follows (modeled as FRIEND accepted outbound)
     const following = await prisma.connection.findMany({
       where: {
-        senderId: session.user.id,
+        senderId: userId,
         status: 'ACCEPTED',
-        type: 'FRIEND', // or 'FOLLOWER' if you use a specific type
+        type: 'FRIEND',
       },
       include: {
         receiver: { select: { id: true, username: true, profilePictureUrl: true } },
@@ -48,27 +47,27 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { action, userId } = await req.json();
+  const { action, userId: targetUserId } = await req.json();
 
   if (action !== 'follow') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
-  if (!userId || userId === session.user.id) {
+  if (!targetUserId || targetUserId === userId) {
     return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
   }
 
-  // Prevent duplicate follow
+  // Prevent duplicate "follow"
   const existing = await prisma.connection.findFirst({
     where: {
-      senderId: session.user.id,
-      receiverId: userId,
-      type: 'FRIEND', // or 'FOLLOWER'
+      senderId: userId,
+      receiverId: targetUserId,
+      type: 'FRIEND',
       status: 'ACCEPTED',
     },
   });
@@ -76,12 +75,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Already following' }, { status: 409 });
   }
 
-  // Create follow connection
+  // Create follow connection (accepted one-way)
   const connection = await prisma.connection.create({
     data: {
-      senderId: session.user.id,
-      receiverId: userId,
-      type: 'FRIEND', // or 'FOLLOWER'
+      senderId: userId,
+      receiverId: targetUserId,
+      type: 'FRIEND',
       status: 'ACCEPTED',
     },
   });
@@ -90,27 +89,26 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { action, userId } = await req.json();
+  const { action, userId: targetUserId } = await req.json();
 
   if (action !== 'unfollow') {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   }
 
-  if (!userId || userId === session.user.id) {
+  if (!targetUserId || targetUserId === userId) {
     return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
   }
 
-  // Find and delete follow connection
   const connection = await prisma.connection.findFirst({
     where: {
-      senderId: session.user.id,
-      receiverId: userId,
-      type: 'FRIEND', // or 'FOLLOWER'
+      senderId: userId,
+      receiverId: targetUserId,
+      type: 'FRIEND',
       status: 'ACCEPTED',
     },
   });

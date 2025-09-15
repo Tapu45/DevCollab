@@ -102,8 +102,8 @@ export default function MyNetworkPage() {
   };
 
   const handleMessageUser = (userId: string) => {
-  router.push(`/messages?user=${userId}`);
-};
+    router.push(`/messages?user=${userId}`);
+  };
 
   const handleSelectAll = (connections: Connection[]) => {
     if (selectedConnections.length === connections.length) {
@@ -135,8 +135,6 @@ export default function MyNetworkPage() {
   const filteredSent = filterConnections(sentConnections);
   const filteredBlocked = filterConnections(blockedUsers);
 
- 
-
   if (loadingReceived || loadingSent || loadingBlocked) {
     return <Loader />;
   }
@@ -149,8 +147,6 @@ export default function MyNetworkPage() {
         transition={{ duration: 0.6 }}
         className="max-w-7xl mx-auto"
       >
-        
-
         {/* Main Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -178,12 +174,35 @@ export default function MyNetworkPage() {
 
             {/* Connected Tab */}
             <TabsContent value="connected">
+              <div className="flex items-center gap-3 mb-4">
+                <Input
+                  placeholder="Search connections..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filter by category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    <SelectItem value="COLLABORATOR">Collaborator</SelectItem>
+                    <SelectItem value="MENTOR">Mentor</SelectItem>
+                    <SelectItem value="MENTEE">Mentee</SelectItem>
+                    <SelectItem value="FRIEND">Friend</SelectItem>
+                    <SelectItem value="COLLEAGUE">Colleague</SelectItem>
+                    <SelectItem value="PROFESSIONAL">Professional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <ConnectedTab
                 searchTerm={searchTerm}
                 onCountChange={setConnectedCount}
                 onViewProfile={handleViewProfile}
                 onBlock={handleBlockUser}
                 onMessage={handleMessageUser}
+                typeFilter={typeFilter}
               />
             </TabsContent>
 
@@ -334,7 +353,7 @@ export default function MyNetworkPage() {
                 onClick={() => {
                   if (deleteDialog.connectionId) {
                     // Handle delete action
-                  setDeleteDialog({ open: false, connectionId: null });
+                    setDeleteDialog({ open: false, connectionId: null });
                   }
                 }}
               >

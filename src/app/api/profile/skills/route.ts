@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
 import { getAuthSession } from '@/utils/Authorize';
+import { invalidateSuggestionsOnUpdate } from '@/services/InvalidateSuggestionCache';
 
 // GET: List all skills for the authenticated user
 export async function GET(req: NextRequest) {
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
         lastUsed: lastUsed ? new Date(lastUsed) : undefined,
       },
     });
+
+    await invalidateSuggestionsOnUpdate(session.user.id, 'skills');
+
     return NextResponse.json(skill, { status: 201 });
   } catch (err: any) {
     if (err.code === 'P2002') {
@@ -94,6 +98,7 @@ export async function PUT(req: NextRequest) {
       lastUsed: lastUsed ? new Date(lastUsed) : undefined,
     },
   });
+  await invalidateSuggestionsOnUpdate(session.user.id, 'skills');
 
   return NextResponse.json(updated);
 }
@@ -121,6 +126,8 @@ export async function DELETE(req: NextRequest) {
   await prisma.skill.delete({
     where: { id },
   });
+
+  await invalidateSuggestionsOnUpdate(session.user.id, 'skills');
 
   return NextResponse.json({ message: 'Skill deleted successfully' });
 }

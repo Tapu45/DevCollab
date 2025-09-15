@@ -1,9 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 
+interface ProjectIdea {
+    title: string;
+    description: string;
+    keyFeatures: string[];
+    techStack: string[];
+    learningBenefits: string[];
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+}
+
+interface SkillSuggestion {
+    recommendedSkill: string;
+    valueProposition: string;
+    learningRoadmap: string[];
+    timeInvestment: string;
+    careerImpact: string;
+}
+
 interface Suggestions {
-    projectIdeas: string[];
-    skillSuggestions: string;
+    projectIdeas: ProjectIdea[];
+    skillSuggestions: SkillSuggestion;
     fromCache: boolean;
 }
 

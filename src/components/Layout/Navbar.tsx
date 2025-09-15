@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MagnifyingGlass,
@@ -12,8 +12,9 @@ import {
   Keyboard,
 } from 'phosphor-react';
 import { MessageCircle, Bell } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import PageHeader from '@/components/Layout/PageHeader';
+import { useSearch } from '@/context/SearchContext';
 
 export default function Navbar() {
   const [query, setQuery] = useState('');
@@ -24,6 +25,17 @@ export default function Navbar() {
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const { search, results, loading, clear } = useSearch();
+
+  const placeholder = useMemo(() => {
+    // Default; pages can set context via what they register
+    if (pathname?.startsWith('/settings')) return 'Search settings...';
+    if (pathname?.startsWith('/my-network')) return 'Search your network...';
+    if (pathname?.startsWith('/collaborate')) return 'Search people, skills...';
+    return 'Search...';
+  }, [pathname]);
 
   useEffect(() => {
     const has = document.documentElement.classList.contains('dark');
@@ -32,7 +44,6 @@ export default function Navbar() {
 
   useEffect(() => {
     if (dropdownOpen) {
-      // Fetch recent 5 notifications when dropdown opens
       fetch('/api/notification?limit=5')
         .then((res) => res.json())
         .then((data) => {
@@ -48,33 +59,61 @@ export default function Navbar() {
     document.documentElement.classList.toggle('dark');
   };
 
- const handleNotificationClick = () => {
-   setDropdownOpen((prev) => !prev);
- };
+  const handleNotificationClick = () => {
+    setDropdownOpen((prev) => !prev);
+  };
 
-   useEffect(() => {
-     const handleClickOutside = (event: MouseEvent) => {
-       if (
-         dropdownOpen &&
-         !(event.target as Element).closest('.notification-dropdown')
-       ) {
-         setDropdownOpen(false);
-       }
-     };
-     document.addEventListener('mousedown', handleClickOutside);
-     return () => document.removeEventListener('mousedown', handleClickOutside);
-   }, [dropdownOpen]);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchOpen &&
+        !(event.target as Element).closest('.search-dropdown')
+      ) {
+        setSearchOpen(false);
+      }
+      if (
+        dropdownOpen &&
+        !(event.target as Element).closest('.notification-dropdown')
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [searchOpen, dropdownOpen]);
 
   const handleViewAll = () => {
     setDropdownOpen(false);
     router.push('/notification');
   };
 
-  const handleNotificationItemClick = (notificationId: string) => {
-    // Optionally mark as read here if needed
-    // For now, just redirect to notification page
-    setDropdownOpen(false);
-    router.push('/notification');
+  const onChangeSearch = (val: string) => {
+    setQuery(val);
+    setSearchOpen(true);
+    if (val.trim().length >= 2) {
+      search(val);
+    } else {
+      clear();
+    }
+  };
+
+  const flatten = useMemo(() => {
+    // Combine with type headings; keep groups in order by priority
+    return results;
+  }, [results]);
+
+  const onSelectItem = (item: any) => {
+    setSearchOpen(false);
+    clear();
+    setQuery('');
+    if (item.href) {
+      router.push(item.href);
+      return;
+    }
+    // Sensible defaults if item is a user-like entity
+    if (item.id) {
+      router.push(`/profile/${item.id}`);
+    }
   };
 
   return (
@@ -87,14 +126,11 @@ export default function Navbar() {
       }}
     >
       <div className="flex items-center justify-between h-16 px-6">
-        {/* Left: PageHeader and Search */}
         <div className="flex items-center gap-4">
           <PageHeader />
         </div>
 
-        {/* Right: Actions */}
         <div className="flex items-center gap-3">
-          {/* Search Bar */}
           <div
             className={`relative transition-all duration-300 ${
               searchOpen ? 'w-100' : 'w-94'
@@ -123,19 +159,20 @@ export default function Navbar() {
               />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => onChangeSearch(e.target.value)}
                 onFocus={() => setSearchOpen(true)}
                 onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                 className="flex-1 bg-transparent outline-none text-sm"
-                style={{
-                  color: 'var(--color-foreground)',
-                }}
-                placeholder="Search projects, people, skills..."
+                style={{ color: 'var(--color-foreground)' }}
+                placeholder={placeholder}
                 aria-label="Search"
               />
               {query && (
                 <button
-                  onClick={() => setQuery('')}
+                  onClick={() => {
+                    setQuery('');
+                    clear();
+                  }}
                   className="p-1 rounded-lg transition-all duration-200"
                   style={{
                     color: 'var(--color-muted-foreground)',
@@ -154,9 +191,95 @@ export default function Navbar() {
                 </button>
               )}
             </div>
+
+            <AnimatePresence>
+              {searchOpen && flatten.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="search-dropdown absolute left-0 right-0 mt-2 rounded-xl border shadow-lg z-50"
+                  style={{
+                    backgroundColor: 'var(--color-card)',
+                    borderColor: 'var(--color-border)',
+                  }}
+                >
+                  <div className="max-h-96 overflow-y-auto py-2">
+                    {loading && (
+                      <div
+                        className="px-4 py-2 text-xs"
+                        style={{ color: 'var(--color-muted-foreground)' }}
+                      >
+                        Searching...
+                      </div>
+                    )}
+
+                    {flatten.map((group) => (
+                      <div key={group.type}>
+                        <div
+                          className="px-4 py-1 text-xs uppercase tracking-wider"
+                          style={{ color: 'var(--color-muted-foreground)' }}
+                        >
+                          {group.type}
+                        </div>
+                        {group.items.length === 0 ? (
+                          <div
+                            className="px-4 py-2 text-sm"
+                            style={{ color: 'var(--color-muted-foreground)' }}
+                          >
+                            No results
+                          </div>
+                        ) : (
+                          group.items.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => onSelectItem(item)}
+                              className="w-full px-4 py-2 flex items-center gap-3 text-left hover:bg-accent transition"
+                              style={{ color: 'var(--color-card-foreground)' }}
+                            >
+                              {item.avatarUrl && (
+                                <img
+                                  src={item.avatarUrl}
+                                  alt=""
+                                  className="w-6 h-6 rounded-full object-cover"
+                                />
+                              )}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  {item.title ?? 'Result'}
+                                </span>
+                                {item.subtitle && (
+                                  <span
+                                    className="text-xs"
+                                    style={{
+                                      color: 'var(--color-muted-foreground)',
+                                    }}
+                                  >
+                                    {item.subtitle}
+                                  </span>
+                                )}
+                                {item.href && (
+                                  <span
+                                    className="text-[10px]"
+                                    style={{
+                                      color: 'var(--color-muted-foreground)',
+                                    }}
+                                  >
+                                    {item.href}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-lg transition-all duration-200"
@@ -188,9 +311,6 @@ export default function Navbar() {
             </motion.div>
           </button>
 
-        
-
-          {/* Notifications Dropdown */}
           <div className="relative">
             <button
               className="relative p-2.5 rounded-lg transition-all duration-200 group"
@@ -223,14 +343,13 @@ export default function Navbar() {
                 </motion.span>
               )}
             </button>
-            {/* Dropdown */}
             <AnimatePresence>
               {dropdownOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50"
+                  className="notification-dropdown absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50"
                   style={{
                     backgroundColor: 'var(--color-card)',
                     borderColor: 'var(--color-border)',
@@ -266,7 +385,10 @@ export default function Navbar() {
                               ? 'var(--color-primary)/10'
                               : 'transparent',
                           }}
-                          onClick={() => handleNotificationItemClick(n.id)}
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            router.push('/notification');
+                          }}
                         >
                           <div className="mt-1">
                             <Bell

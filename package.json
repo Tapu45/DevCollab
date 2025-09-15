@@ -13,7 +13,10 @@
     "db:clear": "node --loader ts-node/esm src/lib/seed/clearDb.ts",
     "import:leetcode": "node src/scripts/import-leetcode-questions.js",
     "template:seed": "node --loader ts-node/esm src/lib/seed/notificationTemplates.ts",
-    "user:seed": "node --loader ts-node/esm prisma/seed/Userseed.ts"
+    "user:seed": "node --loader ts-node/esm prisma/seed/Userseed.ts",
+    "trigger:dev": "npx trigger.dev@latest dev",
+    "postinstall": "prisma generate",
+    "trigger:deploy": "prisma generate && npx trigger.dev@latest deploy"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",
@@ -23,6 +26,7 @@
     "@octokit/rest": "^22.0.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "@prisma/client": "^6.16.1",
+    "@prisma/extension-accelerate": "^2.0.2",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -66,6 +70,7 @@
     "emoji-mart": "^5.6.0",
     "emoji-picker-react": "^4.13.3",
     "framer-motion": "^12.23.12",
+    "groq-sdk": "^0.32.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.536.0",
     "next": "15.3.3",

@@ -11,6 +11,8 @@ interface ConnectedUser {
   displayName?: string;
   profilePictureUrl?: string;
   connectedSince: string;
+  type?: string;
+  connectionId?: string;
 }
 
 interface ConnectedTabProps {
@@ -19,6 +21,7 @@ interface ConnectedTabProps {
   onViewProfile: (userId: string) => void;
   onBlock: (userId: string) => void;
   onMessage: (userId: string) => void;
+  typeFilter?: string;
 }
 
 const useConnectedUsers = () => {
@@ -26,7 +29,9 @@ const useConnectedUsers = () => {
     queryKey: ['connected-users'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/connections/connect?action=connected');
+        const response = await fetch(
+          '/api/connections/connect?action=connected',
+        );
         if (!response.ok) throw new Error('Failed to fetch connected users');
         const data = await response.json();
         return Array.isArray(data.connected) ? data.connected : [];
@@ -44,17 +49,21 @@ export default function ConnectedTab({
   onViewProfile,
   onBlock,
   onMessage,
+  typeFilter = 'all',
 }: ConnectedTabProps) {
   const { data: connectedUsers = [], isLoading } = useConnectedUsers();
 
-  // Filter connected users based on searchTerm (with safe checks)
-  const filteredConnected = (connectedUsers || []).filter((user: ConnectedUser) => {
-    const matchesSearch =
-      !searchTerm ||
-      user?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user?.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  // Filter connected users based on searchTerm and type
+  const filteredConnected = (connectedUsers || []).filter(
+    (user: ConnectedUser) => {
+      const matchesSearch =
+        !searchTerm ||
+        user?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user?.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === 'all' || user?.type === typeFilter;
+      return matchesSearch && matchesType;
+    },
+  );
 
   // Update count in parent component (with safe access)
   useEffect(() => {
@@ -72,7 +81,9 @@ export default function ConnectedTab({
         <Card className="border-border/50">
           <CardContent className="p-12 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground mt-4">Loading connected users...</p>
+            <p className="text-muted-foreground mt-4">
+              Loading connected users...
+            </p>
           </CardContent>
         </Card>
       </motion.div>
@@ -119,6 +130,11 @@ export default function ConnectedTab({
                           Connected since{' '}
                           {new Date(user.connectedSince).toLocaleDateString()}
                         </p>
+                        {user.type && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Category: {user.type}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">

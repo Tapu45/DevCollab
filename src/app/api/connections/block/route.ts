@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
 import { auth } from '@clerk/nextjs/server';
+import { ConnectionNotificationService } from '@/services/ConnectionNotificationService';
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -18,41 +19,66 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
   }
 
-  // Check if already blocked
-  const existing = await prisma.connection.findFirst({
-    where: {
-      senderId: userId,
-      receiverId: targetUserId,
-      status: 'BLOCKED',
-    },
-  });
-  if (existing) {
-    return NextResponse.json({ error: 'Already blocked' }, { status: 409 });
-  }
+  // Block user: ensure any existing ties are removed, create/update BLOCKED, and sync privacy
+  const result = await prisma.$transaction(async (tx) => {
+    // Remove any existing connections in either direction (pending/accepted/declined)
+    await tx.connection.deleteMany({
+      where: {
+        OR: [
+          { senderId: userId, receiverId: targetUserId },
+          { senderId: targetUserId, receiverId: userId },
+        ],
+      },
+    });
 
-  // Block user (create or update connection)
-  const connection = await prisma.connection.upsert({
-    where: {
-      senderId_receiverId: {
+    // Create or update a BLOCKED record in one canonical direction (current user blocks target)
+    const connection = await tx.connection.upsert({
+      where: {
+        senderId_receiverId: {
+          senderId: userId,
+          receiverId: targetUserId,
+        },
+      },
+      update: {
+        status: 'BLOCKED',
+        message: 'User blocked',
+      },
+      create: {
         senderId: userId,
         receiverId: targetUserId,
+        status: 'BLOCKED',
+        type: 'COLLABORATOR',
+        message: 'User blocked',
       },
-    },
-    update: {
-      status: 'BLOCKED',
-      type: 'COLLABORATOR', // or any default type
-      message: 'User blocked',
-    },
-    create: {
-      senderId: userId,
-      receiverId: targetUserId,
-      status: 'BLOCKED',
-      type: 'COLLABORATOR',
-      message: 'User blocked',
-    },
+    });
+
+    // Sync privacy.blockedUserIds
+    const privacy = await tx.connectionPrivacy.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        blockedUserIds: [],
+      },
+    });
+
+    const newBlocked = Array.from(new Set([...(privacy.blockedUserIds || []), targetUserId]));
+    await tx.connectionPrivacy.update({
+      where: { userId },
+      data: { blockedUserIds: newBlocked },
+    });
+
+    return connection;
   });
 
-  return NextResponse.json({ success: true, connection });
+  // // Notify the blocked user (optional informational)
+  // try {
+  //   await ConnectionNotificationService.notifyUserBlocked(userId, targetUserId);
+  // } catch (_) {
+  //   // best-effort
+  // }
+
+  return NextResponse.json({ success: true, connection: result });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -71,22 +97,25 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
   }
 
-  // Find blocked connection
-  const connection = await prisma.connection.findFirst({
-    where: {
-      senderId: userId,
-      receiverId: targetUserId,
-      status: 'BLOCKED',
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    // Remove BLOCKED record if exists (canonical direction)
+    await tx.connection.deleteMany({
+      where: {
+        senderId: userId,
+        receiverId: targetUserId,
+        status: 'BLOCKED',
+      },
+    });
 
-  if (!connection) {
-    return NextResponse.json({ error: 'User not blocked' }, { status: 404 });
-  }
-
-  // Unblock: delete or update status
-  await prisma.connection.delete({
-    where: { id: connection.id },
+    // Remove from privacy.blockedUserIds
+    const privacy = await tx.connectionPrivacy.findUnique({ where: { userId } });
+    if (privacy?.blockedUserIds?.length) {
+      const updated = privacy.blockedUserIds.filter((id) => id !== targetUserId);
+      await tx.connectionPrivacy.update({
+        where: { userId },
+        data: { blockedUserIds: updated },
+      });
+    }
   });
 
   return NextResponse.json({ success: true });

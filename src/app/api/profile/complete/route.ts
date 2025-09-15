@@ -6,27 +6,26 @@ import { storeUserEmbedding } from '@/utils/Pinecone';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Get authenticated user
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Get user's complete profile data
-    const profileData = await extractUserProfileData(userId);
+    console.log('User ID:', userId);
 
-    // 3. Store embedding in Pinecone
+    const profileData = await extractUserProfileData(userId);
+    console.log('Profile data:', profileData);
+
     const success = await storeUserEmbedding(userId);
+    console.log('Embedding success:', success);
+
     if (!success) {
       throw new Error('Failed to store user embedding');
     }
 
-    // 4. Update user's profile completion status
     await prisma.user.update({
       where: { id: userId },
       data: {
-        // Add any profile completion flags or metadata
-        // These are examples - adjust based on your needs
         profileCompleted: true,
         updatedAt: new Date()
       }

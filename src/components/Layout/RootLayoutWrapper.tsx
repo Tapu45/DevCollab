@@ -3,7 +3,8 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import AppLayout from '@/components/Layout/AppLayout';
-import GraceGuard from '@/components/shared/GraceGuard'; 
+import { SearchProvider } from '@/context/SearchContext';
+
 
 export default function RouteLayoutWrapper({
   children,
@@ -22,8 +23,10 @@ export default function RouteLayoutWrapper({
 
   return (
     <>
-      {/* <GraceGuard /> */}
-      <AppLayout>{children}</AppLayout>
+      <SearchProvider>
+        {/* <GraceGuard /> */}
+        <AppLayout>{children}</AppLayout>
+      </SearchProvider>
     </>
   );
 }

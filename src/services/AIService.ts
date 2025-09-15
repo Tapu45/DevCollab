@@ -1,4 +1,6 @@
-import { Client } from "@gradio/client";
+import { GroqChat } from "@/lib/groqClient";
+import type { ChatMessage } from "@/lib/groqClient";
+import { ModelRouter, TaskType } from "@/lib/modelRouter";
 
 interface ProjectIdea {
     title: string;
@@ -18,117 +20,112 @@ interface SkillSuggestion {
 }
 
 export class AIService {
-    private static readonly PROJECT_IDEA_ENDPOINT = process.env.NEXT_PUBLIC_PROJECT_IDEA_ENDPOINT!;
-    private static readonly SKILL_SUGGESTION_ENDPOINT = process.env.NEXT_PUBLIC_SKILL_SUGGESTION_ENDPOINT!;
-    private static readonly HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN! as `hf_${string}`;
-
+    // Initial: Project suggestions
     static async generateProjectIdeas(skills: string[], projects: { title: string, description: string }[]): Promise<ProjectIdea[]> {
         try {
-            const client = await Client.connect(this.PROJECT_IDEA_ENDPOINT, {
-                hf_token: this.HF_TOKEN,
-            });
-
-            // Format skills and projects to match the model's expected input
             const skillsText = skills.join(", ");
-            const projectsText = projects.map(p =>
-                `${p.title} (${p.description})`
-            ).join("\n");
+            const projectsText = projects.map(p => `${p.title} (${p.description || ""})`).join("\n");
 
-            const result = await client.predict("/generate_project_idea", {
-                skills: skillsText,
-                projects: projectsText,
-            });
+            const model = await ModelRouter.pick(TaskType.ProjectSuggest);
+            const prompt: ChatMessage[] = [
+                {
+                    role: "system",
+                    content:
+                        "You are an expert software mentor. Return concise JSON strictly matching the schema. No extra text.",
+                },
+                {
+                    role: "user",
+                    content:
+                        `Given these user skills and recent/owned projects, propose 1-3 tailored project ideas.\n\n` +
+                        `Skills: ${skillsText}\nProjects:\n${projectsText}\n\n` +
+                        `Return JSON array of objects with keys: title, description, keyFeatures (string[]), techStack (string[]), learningBenefits (string[]), difficulty ('beginner'|'intermediate'|'advanced').`
+                }
+            ];
 
-            // Parse the structured response
-            const response = result.data as string;
-            return this.parseProjectIdea(response);
+            const jsonText = await GroqChat.json(model, prompt, { temperature: 0.3, max_tokens: 800 });
+            const parsed = JSON.parse(jsonText);
+
+            if (Array.isArray(parsed)) {
+                return parsed as ProjectIdea[];
+            }
+            if (parsed && parsed.ideas && Array.isArray(parsed.ideas)) {
+                return parsed.ideas as ProjectIdea[];
+            }
+            return [this.getFallbackProjectIdea(skills)];
         } catch (error) {
             console.error("Error generating project ideas:", error);
             return [this.getFallbackProjectIdea(skills)];
         }
     }
 
+    // Initial: Skills roadmap
     static async suggestSkills(currentSkills: string[]): Promise<SkillSuggestion> {
         try {
-            const client = await Client.connect(this.SKILL_SUGGESTION_ENDPOINT, {
-                hf_token: this.HF_TOKEN,
-            });
+            const skillsText = currentSkills.join(", ");
 
-            // Format current skills with proficiency levels if available
-            const skillsText = currentSkills.map(skill => {
-                // You could enhance this by adding proficiency levels from your DB
-                return skill;
-            }).join(", ");
+            const model = await ModelRouter.pick(TaskType.SkillsSuggest);
+            const prompt: ChatMessage[] = [
+                {
+                    role: "system",
+                    content:
+                        "You are a career coach. Return concise JSON strictly matching the schema. No extra text.",
+                },
+                {
+                    role: "user",
+                    content:
+                        `User's current skills: ${skillsText}\n` +
+                        `Recommend 1 high-impact next skill with:\n` +
+                        `- recommendedSkill (string)\n- valueProposition (string)\n- learningRoadmap (string[] of 4-8 steps)\n- timeInvestment (string)\n- careerImpact (string)\n` +
+                        `Return exactly one JSON object.`
+                }
+            ];
 
-            const result = await client.predict("/suggest_skill", {
-                current_skills: skillsText,
-            });
-
-            // Parse the structured response
-            const response = result.data as string;
-            return this.parseSkillSuggestion(response);
+            const jsonText = await GroqChat.json(model, prompt, { temperature: 0.3, max_tokens: 600 });
+            const parsed = JSON.parse(jsonText);
+            return parsed as SkillSuggestion;
         } catch (error) {
             console.error("Error suggesting skills:", error);
             return this.getFallbackSkillSuggestion(currentSkills);
         }
     }
 
-    private static parseProjectIdea(response: string): ProjectIdea[] {
-        try {
-            // Extract sections using regex or string splitting
-            const sections = response.split('\n');
-            const idea: ProjectIdea = {
-                title: this.extractSection(sections, "Project Title:"),
-                description: this.extractSection(sections, "Project Description:"),
-                keyFeatures: this.extractBulletPoints(sections, "Key Features:"),
-                techStack: this.extractBulletPoints(sections, "Tech Stack:"),
-                learningBenefits: this.extractBulletPoints(sections, "Learning Benefits:"),
-                difficulty: this.extractSection(sections, "Difficulty:").toLowerCase() as any,
-            };
-            return [idea];
-        } catch (error) {
-            console.error("Error parsing project idea:", error);
-            return [this.getFallbackProjectIdea([])];
-        }
-    }
-
-    private static parseSkillSuggestion(response: string): SkillSuggestion {
-        try {
-            const sections = response.split('\n');
-            return {
-                recommendedSkill: this.extractSection(sections, "Recommended Skill:"),
-                valueProposition: this.extractSection(sections, "Why It's Valuable:"),
-                learningRoadmap: this.extractBulletPoints(sections, "Learning Roadmap:"),
-                timeInvestment: this.extractSection(sections, "Time Investment:"),
-                careerImpact: this.extractSection(sections, "Career Impact:"),
-            };
-        } catch (error) {
-            console.error("Error parsing skill suggestion:", error);
-            return this.getFallbackSkillSuggestion([]);
-        }
-    }
-
-    private static extractSection(sections: string[], header: string): string {
-        const section = sections.find(s => s.trim().startsWith(header));
-        return section ? section.replace(header, '').trim() : '';
-    }
-
-    private static extractBulletPoints(sections: string[], header: string): string[] {
-        const startIndex = sections.findIndex(s => s.trim().startsWith(header));
-        if (startIndex === -1) return [];
-
-        const points: string[] = [];
-        for (let i = startIndex + 1; i < sections.length; i++) {
-            const line = sections[i].trim();
-            if (line.startsWith('-') || line.startsWith('•')) {
-                points.push(line.substring(1).trim());
-            } else if (line.match(/^\d+\./)) {
-                points.push(line.replace(/^\d+\./, '').trim());
-            } else if (line === '' || line.includes(':')) {
-                break;
+    // Deep-dive: Project exploration
+    static async deepDiveProject(project: { title: string; description?: string; techStack?: string[]; userSkills?: string[] }) {
+        const model = await ModelRouter.pick(TaskType.ProjectDeepDive);
+        const prompt: ChatMessage[] = [
+            { role: "system", content: "You are a senior tech lead. Return structured JSON. No extra text." },
+            {
+                role: "user",
+                content:
+                    `Deep dive for project:\n` +
+                    `Title: ${project.title}\nDescription: ${project.description || ""}\n` +
+                    `Tech stack: ${(project.techStack || []).join(", ")}\nUser skills: ${(project.userSkills || []).join(", ")}\n\n` +
+                    `Return JSON with keys:\n` +
+                    `- milestones: string[]\n- architecture: string[] (key components)\n- tasksWeekByWeek: string[][] (8-12 weeks, each is string[])\n- risks: string[]\n- references: { title: string; url: string }[]`
             }
-        }
-        return points;
+        ];
+        const jsonText = await GroqChat.json(model, prompt, { temperature: 0.2, max_tokens: 1600 });
+        return JSON.parse(jsonText);
+    }
+
+    // Deep-dive: Skills roadmap expansion
+    static async deepDiveSkills(skill: string, currentSkills: string[]) {
+        const model = await ModelRouter.pick(TaskType.SkillsDeepDive);
+        const prompt: ChatMessage[] = [
+            { role: "system", content: "You are a senior educator. Return structured JSON. No extra text." },
+            {
+                role: "user",
+                content:
+                    `User skills: ${currentSkills.join(", ")}\n` +
+                    `Target skill for deep dive: ${skill}\n\n` +
+                    `Return JSON with keys:\n` +
+                    `- prerequisites: string[]\n- curriculum: { module: string; outcomes: string[]; resources: { title: string; url: string }[] }[]\n` +
+                    `- practiceProjects: { title: string; brief: string }[]\n` +
+                    `- assessment: string[]`
+            }
+        ];
+        const jsonText = await GroqChat.json(model, prompt, { temperature: 0.25, max_tokens: 1400 });
+        return JSON.parse(jsonText);
     }
 
     private static getFallbackProjectIdea(skills: string[]): ProjectIdea {

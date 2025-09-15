@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from '@clerk/nextjs/server';
 import { SuggestionCacheService } from "@/services/SuggestionCacheService";
-import { generateUserSuggestions } from "@/trigger/generateUserSuggestions";
 
 export async function GET(request: NextRequest) {
     try {
@@ -39,18 +38,18 @@ export async function POST(request: NextRequest) {
             await SuggestionCacheService.invalidateUserCache(userId);
         }
 
-        // Enqueue instead of computing synchronously
-        await generateUserSuggestions.trigger({ userId: userId });
+        // Compute synchronously with Groq-backed AIService (no Trigger.dev)
+        const res = await SuggestionCacheService.generateAndCacheSuggestions(userId);
 
         return NextResponse.json({
             success: true,
-            queued: true,
-            message: "Suggestion generation queued",
-        }, { status: 202 });
+            queued: false,
+            data: res,
+        }, { status: 200 });
     } catch (error) {
-        console.error("Error queuing suggestions:", error);
+        console.error("Error generating suggestions:", error);
         return NextResponse.json(
-            { error: "Failed to queue suggestions" },
+            { error: "Failed to generate suggestions" },
             { status: 500 }
         );
     }
