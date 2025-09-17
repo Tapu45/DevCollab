@@ -1,11 +1,11 @@
-import { getPrismaClient } from "@/trigger/PrismaService";
+import { prisma } from "@/lib/Prisma";
 import { AIService } from "./AIService";
 
 export class SuggestionCacheService {
     private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
     static async getUserSuggestions(userId: string) {
-        const prisma = await getPrismaClient();
+       
 
         const cache = await prisma.userSuggestionCache.findUnique({
             where: { userId },
@@ -25,7 +25,7 @@ export class SuggestionCacheService {
     }
 
     static async generateAndCacheSuggestions(userId: string) {
-        const prisma = await getPrismaClient();
+       
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -75,7 +75,7 @@ export class SuggestionCacheService {
     }
 
     static async invalidateUserCache(userId: string) {
-        const prisma = await getPrismaClient();
+    
 
         await prisma.userSuggestionCache.updateMany({
             where: { userId },

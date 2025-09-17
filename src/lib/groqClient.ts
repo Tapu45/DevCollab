@@ -1,4 +1,3 @@
-// src/lib/groqClient.ts
 import Groq from "groq-sdk";
 
 const API_KEY = process.env.GROQ_API_KEY!;
