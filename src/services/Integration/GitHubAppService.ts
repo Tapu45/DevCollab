@@ -34,9 +34,15 @@ class GitHubAppService {
     }
 
     private loadPrivateKey(): string {
+        // Prefer env variable (for Vercel/production)
+        if (process.env.GITHUB_PRIVATE_KEY) {
+            // Replace literal '\n' with real newlines
+            return process.env.GITHUB_PRIVATE_KEY.replace(/\\n/g, '\n');
+        }
+        // Fallback to file path (for local dev)
         const keyPath = process.env.GITHUB_PRIVATE_KEY_PATH;
         if (!keyPath) {
-            throw new Error('GITHUB_PRIVATE_KEY_PATH is required');
+            throw new Error('GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_PATH is required');
         }
         return readFileSync(keyPath, 'utf8');
     }
