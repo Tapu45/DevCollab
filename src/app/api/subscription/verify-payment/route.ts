@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import crypto from 'crypto';
-import { SubscriptionStatus } from '@/generated/prisma';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const invoice = await prisma.invoice.findFirst({
       where: {
         subscriptionId: subscription.id,
-        stripeInvoiceId: razorpay_order_id, // Using stripeInvoiceId for razorpay order id
+        stripeInvoiceId: razorpay_order_id,
       }
     });
 
@@ -71,25 +71,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Calculate subscription dates
-    const now = new Date();
-    const currentPeriodEnd = new Date();
-    if (subscription.plan.interval === 'monthly') {
-      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
-    } else if (subscription.plan.interval === 'yearly') {
-      currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
-    }
-
-    // Update subscription
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: SubscriptionStatus.ACTIVE,
-        currentPeriodStart: now,
-        currentPeriodEnd: currentPeriodEnd,
-        updatedAt: now,
-      },
-    });
+    // Activate subscription for monthly billing
+    await SubscriptionService.activateSubscription(userId, new Date());
 
     return NextResponse.json({ success: true });
   } catch (error) {

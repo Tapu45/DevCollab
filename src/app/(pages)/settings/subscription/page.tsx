@@ -260,6 +260,7 @@ export default function SubscriptionPage() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Current Plan Card */}
+              {/* Current Plan Card - Updated for Monthly Billing */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -281,15 +282,50 @@ export default function SubscriptionPage() {
                         {subscription?.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    {subscription?.currentPeriodEnd && (
+
+                    {/* NEW: Monthly Billing Info */}
+                    {subscription?.planType !== 'FREE' &&
+                      subscription?.nextBillingDate && (
+                        <div className="text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 inline mr-1" />
+                          Next billing:{' '}
+                          {new Date(
+                            subscription.nextBillingDate,
+                          ).toLocaleDateString()}
+                        </div>
+                      )}
+
+                    {/* NEW: Grace Period Warning */}
+                    {subscription?.gracePeriodEnd &&
+                      new Date(subscription.gracePeriodEnd) > new Date() && (
+                        <div className="flex items-center gap-2 text-orange-600 bg-orange-50 p-2 rounded">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="text-sm">
+                            Payment overdue. Grace period ends{' '}
+                            {new Date(
+                              subscription.gracePeriodEnd,
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+
+                    {/* NEW: Failed Payment Count */}
+                    {subscription?.failedPaymentCount &&
+                      subscription.failedPaymentCount > 0 && (
+                        <div className="text-sm text-red-600">
+                          Failed payments: {subscription.failedPaymentCount}
+                        </div>
+                      )}
+
+                    {/* NEW: Auto-renewal Status */}
+                    {subscription?.planType !== 'FREE' && (
                       <div className="text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4 inline mr-1" />
-                        Renews on{' '}
-                        {new Date(
-                          subscription.currentPeriodEnd,
-                        ).toLocaleDateString()}
+                        <RefreshCw className="h-4 w-4 inline mr-1" />
+                        Auto-renewal:{' '}
+                        {subscription?.autoRenew ? 'Enabled' : 'Disabled'}
                       </div>
                     )}
+
                     <div className="space-y-2">
                       <Button
                         size="sm"
@@ -311,6 +347,61 @@ export default function SubscriptionPage() {
                         </Button>
                       )}
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+              {/* NEW: Billing Status Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Billing Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Plan Type
+                      </span>
+                      <span className="font-medium">
+                        {subscription?.planType || 'FREE'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Billing Cycle
+                      </span>
+                      <span className="font-medium">
+                        {subscription?.planType === 'FREE'
+                          ? 'Lifetime'
+                          : 'Monthly'}
+                      </span>
+                    </div>
+                    {subscription?.lastPaymentDate && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Last Payment
+                        </span>
+                        <span className="font-medium">
+                          {new Date(
+                            subscription.lastPaymentDate,
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    {subscription?.nextBillingDate && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Next Billing
+                        </span>
+                        <span className="font-medium">
+                          {new Date(
+                            subscription.nextBillingDate,
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -557,7 +648,10 @@ export default function SubscriptionPage() {
                       <div className="text-3xl font-bold">
                         ${plan.price}
                         <span className="text-sm font-normal text-muted-foreground">
-                          /{plan.interval}
+                          /
+                          {plan.interval === 'lifetime'
+                            ? 'lifetime'
+                            : plan.interval}
                         </span>
                       </div>
                     </CardHeader>

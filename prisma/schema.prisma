@@ -28,6 +28,8 @@ enum SubscriptionStatus {
   UNPAID
   INCOMPLETE
   INCOMPLETE_EXPIRED
+  EXPIRED
+  GRACE_PERIOD
 }
 
 enum PlanType {
@@ -41,7 +43,7 @@ model Plan {
   id          String   @id @default(cuid())
   name        String
   description String?
-  type        PlanType
+  type        PlanType @unique
   price       Decimal  @db.Money
   currency    String   @default("USD")
   interval    String   // monthly, yearly
@@ -57,6 +59,8 @@ model Plan {
   hasAnalytics       Boolean @default(false)
   hasPrioritySupport Boolean @default(false)
   hasApiAccess       Boolean @default(false)
+
+  dailyRefreshLimit  Int     @default(3)
   
   subscriptions Subscription[]
   createdAt     DateTime       @default(now())
@@ -78,6 +82,13 @@ model Subscription {
   canceledAt         DateTime?
   trialStart         DateTime?
   trialEnd           DateTime?
+  
+  // New fields for monthly billing
+  nextBillingDate    DateTime?         // When the next payment is due
+  gracePeriodEnd     DateTime?         // End of grace period for failed payments
+  lastPaymentDate    DateTime?         // When the last successful payment was made
+  failedPaymentCount Int              @default(0) // Track failed payment attempts
+  autoRenew          Boolean          @default(true) // Whether subscription auto-renews
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan Plan @relation(fields: [planId], references: [id])

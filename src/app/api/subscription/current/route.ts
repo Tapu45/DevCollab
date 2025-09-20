@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import { PLAN_LIMITS } from '@/middleware/subscription-middleware';
-import { SubscriptionStatus } from '@/generated/prisma';
+import { SubscriptionService } from '@/services/SubscriptionService';
+import { PlanType } from '@/generated/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,31 +16,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: userId },
-      include: { plan: true },
-    });
+    const subscription = await SubscriptionService.getUserSubscription(userId);
 
     if (!subscription) {
-      // Default to FREE plan
       return NextResponse.json({
         planType: 'FREE',
         status: 'ACTIVE',
         limits: PLAN_LIMITS.FREE,
         isActive: true,
+        nextBillingDate: null,
+        gracePeriodEnd: null,
       });
     }
 
-    const isActive = isSubscriptionActive(subscription);
+    const isActive = SubscriptionService.isSubscriptionActive(subscription);
 
     return NextResponse.json({
       planType: subscription.plan.type,
       status: subscription.status,
       limits: PLAN_LIMITS[subscription.plan.type],
       isActive,
-      trialEndsAt: subscription.trialEnd,
+      nextBillingDate: subscription.nextBillingDate,
       currentPeriodEnd: subscription.currentPeriodEnd,
-      stripeSubscriptionId: subscription.stripeSubscriptionId, // Using stripeSubscriptionId instead
+      gracePeriodEnd: subscription.gracePeriodEnd,
+      failedPaymentCount: subscription.failedPaymentCount,
+      autoRenew: subscription.autoRenew,
     });
   } catch (error) {
     console.error('Error fetching subscription:', error);
@@ -48,23 +49,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-function isSubscriptionActive(subscription: any): boolean {
-  const now = new Date();
-
-  if (subscription.status !== SubscriptionStatus.ACTIVE &&
-    subscription.status !== SubscriptionStatus.TRIAL) {
-    return false;
-  }
-
-  if (subscription.status === SubscriptionStatus.TRIAL) {
-    return subscription.trialEnd ? new Date(subscription.trialEnd) > now : false;
-  }
-
-  if (subscription.currentPeriodEnd) {
-    return new Date(subscription.currentPeriodEnd) > now;
-  }
-
-  return false;
 }

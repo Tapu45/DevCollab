@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import { PlanType, SubscriptionStatus } from '@/generated/prisma';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 // Define plan limits and features
 export const PLAN_LIMITS = {
@@ -58,8 +59,8 @@ export const PLAN_LIMITS = {
     },
     ENTERPRISE: {
         maxProjects: -1, // unlimited
-        maxConnections: -1, // unlimited
-        maxTeamMembers: -1, // unlimited
+        maxConnections: -1,
+        maxTeamMembers: -1,
         hasAdvancedAI: true,
         hasAnalytics: true,
         hasPrioritySupport: true,
@@ -74,190 +75,67 @@ export const PLAN_LIMITS = {
         canSendMessages: -1, // unlimited
     },
 };
+type PlanFeatureKey = keyof typeof PLAN_LIMITS['FREE'];
 
-// Protected routes that require subscription check
-const PROTECTED_ROUTES = {
-    // Routes that require BASIC or higher
-    BASIC_ROUTES: [
-        '/api/ai/',
-        '/dashboard/analytics',
-        '/collaborate/advanced',
-    ],
-    // Routes that require PRO or higher
-    PRO_ROUTES: [
-        '/api/analytics/',
-        '/api/advanced-ai/',
-        '/dashboard/insights',
-        '/api/integrations/',
-    ],
-    // Routes that require ENTERPRISE
-    ENTERPRISE_ROUTES: [
-        '/api/enterprise/',
-        '/dashboard/enterprise',
-        '/api/sso/',
-    ],
-};
+export async function checkSubscriptionLimits(
+    request: NextRequest,
+    requiredFeature?: PlanFeatureKey // <-- use the type here
+) {
+    const { userId } = await auth();
 
-export interface UserSubscriptionInfo {
-    planType: PlanType;
-    status: SubscriptionStatus;
-    limits: typeof PLAN_LIMITS.FREE;
-    isActive: boolean;
-    trialEndsAt?: Date;
-    currentPeriodEnd?: Date;
-}
-
-export class SubscriptionService {
-    static async getUserSubscription(userId: string): Promise<UserSubscriptionInfo | null> {
-        try {
-            const subscription = await prisma.subscription.findUnique({
-                where: { userId },
-                include: { plan: true },
-            });
-
-            if (!subscription) {
-                // Default to FREE plan if no subscription
-                return {
-                    planType: PlanType.FREE,
-                    status: SubscriptionStatus.ACTIVE,
-                    limits: PLAN_LIMITS.FREE,
-                    isActive: true,
-                };
-            }
-
-            const isActive = this.isSubscriptionActive(subscription);
-            const planType = subscription.plan.type;
-
-            return {
-                planType,
-                status: subscription.status,
-                limits: PLAN_LIMITS[planType],
-                isActive,
-                trialEndsAt: subscription.trialEnd || undefined,
-                currentPeriodEnd: subscription.currentPeriodEnd || undefined,
-            };
-        } catch (error) {
-            console.error('Error fetching user subscription:', error);
-            return null;
-        }
-    }
-
-    static isSubscriptionActive(subscription: any): boolean {
-        const now = new Date();
-
-        // Check if subscription is in active status
-        if (subscription.status !== SubscriptionStatus.ACTIVE &&
-            subscription.status !== SubscriptionStatus.TRIAL) {
-            return false;
-        }
-
-        // Check if trial is still valid
-        if (subscription.status === SubscriptionStatus.TRIAL) {
-            return subscription.trialEnd ? new Date(subscription.trialEnd) > now : false;
-        }
-
-        // Check if current period is still valid
-        if (subscription.currentPeriodEnd) {
-            return new Date(subscription.currentPeriodEnd) > now;
-        }
-
-        return false;
-    }
-
-    static hasFeatureAccess(userPlan: PlanType, requiredPlan: PlanType): boolean {
-        const planHierarchy = {
-            [PlanType.FREE]: 0,
-            [PlanType.BASIC]: 1,
-            [PlanType.PRO]: 2,
-            [PlanType.ENTERPRISE]: 3,
-        };
-
-        return planHierarchy[userPlan] >= planHierarchy[requiredPlan];
-    }
-
-    static checkRouteAccess(pathname: string, userPlan: PlanType): boolean {
-        // Check ENTERPRISE routes
-        if (PROTECTED_ROUTES.ENTERPRISE_ROUTES.some(route => pathname.startsWith(route))) {
-            return this.hasFeatureAccess(userPlan, PlanType.ENTERPRISE);
-        }
-
-        // Check PRO routes
-        if (PROTECTED_ROUTES.PRO_ROUTES.some(route => pathname.startsWith(route))) {
-            return this.hasFeatureAccess(userPlan, PlanType.PRO);
-        }
-
-        // Check BASIC routes
-        if (PROTECTED_ROUTES.BASIC_ROUTES.some(route => pathname.startsWith(route))) {
-            return this.hasFeatureAccess(userPlan, PlanType.BASIC);
-        }
-
-        return true; // Allow access to non-protected routes
-    }
-}
-
-export async function subscriptionMiddleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
-
-    // Skip middleware for auth routes and static files
-    if (
-        pathname.startsWith('/auth') ||
-        pathname.startsWith('/_next') ||
-        pathname.startsWith('/api/auth') ||
-        pathname.includes('.')
-    ) {
-        return NextResponse.next();
+    if (!userId) {
+        return NextResponse.json(
+            { error: 'Unauthorized' },
+            { status: 401 }
+        );
     }
 
     try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            // Redirect to login for protected routes
-            if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/')) {
-                return NextResponse.redirect(new URL('/auth/signin', request.url));
-            }
-            return NextResponse.next();
-        }
-
         const subscription = await SubscriptionService.getUserSubscription(userId);
 
         if (!subscription) {
             return NextResponse.json(
-                { error: 'Unable to verify subscription' },
-                { status: 500 }
+                { error: 'Subscription not found' },
+                { status: 404 }
             );
         }
 
+        const isActive = SubscriptionService.isSubscriptionActive(subscription);
+        const limits = PLAN_LIMITS[subscription.planId as keyof typeof PLAN_LIMITS];
+
         // Check if subscription is active
-        if (!subscription.isActive) {
-            if (pathname.startsWith('/api/')) {
-                return NextResponse.json(
-                    { error: 'Subscription expired or inactive' },
-                    { status: 403 }
-                );
-            }
-            return NextResponse.redirect(new URL('/settings/billing', request.url));
+        if (!isActive) {
+            return NextResponse.json(
+                {
+                    error: 'Subscription inactive',
+                    planType: subscription.planId,
+                    status: subscription.status,
+                    nextBillingDate: subscription.nextBillingDate,
+                    gracePeriodEnd: subscription.gracePeriodEnd
+                },
+                { status: 403 }
+            );
         }
 
-        // Check route access based on plan
-        if (!SubscriptionService.checkRouteAccess(pathname, subscription.planType)) {
-            if (pathname.startsWith('/api/')) {
-                return NextResponse.json(
-                    { error: 'Upgrade required for this feature' },
-                    { status: 403 }
-                );
-            }
-            return NextResponse.redirect(new URL('/settings/billing', request.url));
+        // Check specific feature if required
+        if (requiredFeature && !limits[requiredFeature]) {
+            return NextResponse.json(
+                {
+                    error: 'Feature not available in current plan',
+                    planType: subscription.planId,
+                    requiredFeature
+                },
+                { status: 403 }
+            );
         }
 
-        // Add subscription info to headers for API routes
-        const response = NextResponse.next();
-        response.headers.set('x-user-plan', subscription.planType);
-        response.headers.set('x-subscription-active', subscription.isActive.toString());
-
-        return response;
+        return {
+            subscription,
+            limits,
+            isActive
+        };
     } catch (error) {
-        console.error('Subscription middleware error:', error);
+        console.error('Error checking subscription limits:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

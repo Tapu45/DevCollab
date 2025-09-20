@@ -87,6 +87,20 @@ export function ProjectSkillSuggestions() {
       animate="visible"
       className="space-y-8"
     >
+      {/* Main Beautiful Heading */}
+      <motion.h2
+        variants={itemVariants}
+        className="text-3xl md:text-4xl font-extrabold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[color:var(--primary)] via-[color:var(--accent-foreground)] to-[color:var(--foreground)] drop-shadow-sm"
+      >
+        Unlock Your Next Big Project & Skill
+      </motion.h2>
+      <motion.p
+        variants={itemVariants}
+        className="text-center text-base md:text-lg text-[color:var(--muted-foreground)] mb-6"
+      >
+        Get inspired by AI-powered project ideas and skill roadmaps tailored for
+        your growth.
+      </motion.p>
       {/* Project Ideas Section */}
       <motion.div variants={itemVariants}>
         <Card

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
 import { pusher } from '@/utils/Pusher';
 import crypto from 'crypto';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,17 +26,14 @@ export async function POST(request: NextRequest) {
             case 'payment.captured':
                 await handlePaymentCaptured(event);
                 break;
+            case 'payment.failed':
+                await handlePaymentFailed(event);
+                break;
             case 'subscription.activated':
                 await handleSubscriptionActivated(event);
                 break;
             case 'subscription.cancelled':
                 await handleSubscriptionCancelled(event);
-                break;
-            case 'subscription.paused':
-                await handleSubscriptionPaused(event);
-                break;
-            case 'subscription.resumed':
-                await handleSubscriptionResumed(event);
                 break;
             default:
                 console.log('Unhandled webhook event:', event.event);
@@ -70,6 +68,9 @@ async function handlePaymentCaptured(event: any) {
             },
         });
 
+        // Activate subscription
+        await SubscriptionService.activateSubscription(invoice.subscription.userId);
+
         // Trigger real-time update
         await pusher.trigger(`user-${invoice.subscription.userId}`, 'subscription_updated', {
             type: 'payment_captured',
@@ -79,23 +80,42 @@ async function handlePaymentCaptured(event: any) {
     }
 }
 
+async function handlePaymentFailed(event: any) {
+    const { order_id } = event.payload.payment.entity;
+
+    // Find the invoice
+    const invoice = await prisma.invoice.findFirst({
+        where: { stripeInvoiceId: order_id },
+        include: { subscription: { include: { user: true } } },
+    });
+
+    if (invoice) {
+        // Update invoice status
+        await prisma.invoice.update({
+            where: { id: invoice.id },
+            data: {
+                status: 'FAILED',
+            },
+        });
+
+        // Handle failed payment
+        await SubscriptionService.handleFailedPayment(invoice.subscription.userId);
+    }
+}
+
 async function handleSubscriptionActivated(event: any) {
     const { subscription_id } = event.payload.subscription.entity;
 
     const subscription = await prisma.subscription.findFirst({
         where: { stripeSubscriptionId: subscription_id },
-        include: { user: true },
+        include: { user: true }
     });
 
     if (subscription) {
-        await prisma.subscription.update({
-            where: { id: subscription.id },
-            data: { status: 'ACTIVE' },
-        });
+        await SubscriptionService.activateSubscription(subscription.userId);
 
-        await pusher.trigger(`user-${subscription.userId}`, 'subscription_updated', {
-            type: 'subscription_activated',
-            planType: subscription.planId,
+        await pusher.trigger(`user-${subscription.userId}`, 'subscription_activated', {
+            subscriptionId: subscription_id,
         });
     }
 }
@@ -105,50 +125,14 @@ async function handleSubscriptionCancelled(event: any) {
 
     const subscription = await prisma.subscription.findFirst({
         where: { stripeSubscriptionId: subscription_id },
-        include: { user: true },
+        include: { user: true }
     });
 
     if (subscription) {
-        await prisma.subscription.update({
-            where: { id: subscription.id },
-            data: {
-                status: 'CANCELED',
-                canceledAt: new Date(),
-            },
-        });
+        await SubscriptionService.cancelSubscription(subscription.userId, true);
 
-        await pusher.trigger(`user-${subscription.userId}`, 'subscription_updated', {
-            type: 'subscription_cancelled',
-        });
-    }
-}
-
-async function handleSubscriptionPaused(event: any) {
-    const { subscription_id } = event.payload.subscription.entity;
-
-    const subscription = await prisma.subscription.findFirst({
-        where: { stripeSubscriptionId: subscription_id },
-        include: { user: true },
-    });
-
-    if (subscription) {
-        await pusher.trigger(`user-${subscription.userId}`, 'subscription_updated', {
-            type: 'subscription_paused',
-        });
-    }
-}
-
-async function handleSubscriptionResumed(event: any) {
-    const { subscription_id } = event.payload.subscription.entity;
-
-    const subscription = await prisma.subscription.findFirst({
-        where: { stripeSubscriptionId: subscription_id },
-        include: { user: true },
-    });
-
-    if (subscription) {
-        await pusher.trigger(`user-${subscription.userId}`, 'subscription_updated', {
-            type: 'subscription_resumed',
+        await pusher.trigger(`user-${subscription.userId}`, 'subscription_cancelled', {
+            subscriptionId: subscription_id,
         });
     }
 }

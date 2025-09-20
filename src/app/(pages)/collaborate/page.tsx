@@ -10,13 +10,10 @@ import { useRouter } from 'next/navigation';
 import { motion, easeOut } from 'framer-motion';
 import {
   MapPin,
-  User,
   Sparkles,
   ArrowRight,
   Users,
   TrendingUp,
-  Star,
-  Briefcase,
 } from 'lucide-react';
 import { usePage } from '@/context/PageContext';
 import { useEffect, useMemo } from 'react';
@@ -85,16 +82,6 @@ const itemVariants = {
   },
 };
 
-const cardHoverVariants = {
-  hover: {
-    y: -8,
-    scale: 1.02,
-    transition: {
-      duration: 0.2,
-      ease: 'easeOut',
-    },
-  },
-};
 
 export default function CollaboratePage() {
   const router = useRouter();
@@ -104,7 +91,7 @@ export default function CollaboratePage() {
     setPageInfo('Collaborate', 'Discover your perfect developer match');
   }, [setPageInfo]);
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['suggested-users'],
     queryFn: fetchSuggestions,
     staleTime: 1000 * 60 * 5,
@@ -265,7 +252,7 @@ export default function CollaboratePage() {
           animate="visible"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16"
         >
-          {users.map((user, index) => (
+          {users.map((user) => (
             <motion.div
               key={user.userId}
               variants={itemVariants}

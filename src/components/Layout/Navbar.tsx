@@ -21,7 +21,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
@@ -42,6 +42,19 @@ export default function Navbar() {
     setIsDark(has);
   }, []);
 
+  // Fetch notification count on mount
+  useEffect(() => {
+    fetch('/api/notification?limit=0') // limit=0 to only get count, not notifications
+      .then((res) => res.json())
+      .then((data) => {
+        setNotifications(data.unreadCount || 0);
+      })
+      .catch((err) =>
+        console.error('Failed to fetch notification count:', err),
+      );
+  }, []);
+
+  // Fetch notifications when dropdown opens
   useEffect(() => {
     if (dropdownOpen) {
       fetch('/api/notification?limit=5')
@@ -63,24 +76,21 @@ export default function Navbar() {
     setDropdownOpen((prev) => !prev);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchOpen &&
-        !(event.target as Element).closest('.search-dropdown')
-      ) {
-        setSearchOpen(false);
-      }
-      if (
-        dropdownOpen &&
-        !(event.target as Element).closest('.notification-dropdown')
-      ) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [searchOpen, dropdownOpen]);
+ useEffect(() => {
+   const handleClickOutside = (event: MouseEvent) => {
+     if (searchOpen && !(event.target as Element).closest('.search-dropdown')) {
+       setSearchOpen(false);
+     }
+     if (
+       dropdownOpen &&
+       !(event.target as Element).closest('.notification-parent')
+     ) {
+       setDropdownOpen(false);
+     }
+   };
+   document.addEventListener('mousedown', handleClickOutside);
+   return () => document.removeEventListener('mousedown', handleClickOutside);
+ }, [searchOpen, dropdownOpen]);
 
   const handleViewAll = () => {
     setDropdownOpen(false);
@@ -311,7 +321,7 @@ export default function Navbar() {
             </motion.div>
           </button>
 
-          <div className="relative">
+          <div className="relative notification-parent">
             <button
               className="relative p-2.5 rounded-lg transition-all duration-200 group"
               style={{

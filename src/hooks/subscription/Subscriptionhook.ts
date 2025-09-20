@@ -83,6 +83,12 @@ export interface UserSubscriptionInfo {
   trialEndsAt?: Date;
   currentPeriodEnd?: Date;
   razorpaySubscriptionId?: string;
+  // ADD THESE NEW FIELDS:
+  nextBillingDate?: Date;
+  gracePeriodEnd?: Date;
+  failedPaymentCount?: number;
+  autoRenew?: boolean;
+  lastPaymentDate?: Date;
 }
 
 export interface UsageStats {

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/Prisma';
 import Razorpay from 'razorpay';
 import { PlanType, SubscriptionStatus } from '@/generated/prisma';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -41,19 +42,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let subscription = await prisma.subscription.findUnique({
-      where: { userId: userId },
-    });
-
-    if (!subscription) {
-      subscription = await prisma.subscription.create({
-        data: {
-          userId: userId,
-          planId: plan.id,
-          status: SubscriptionStatus.INCOMPLETE,
-        },
+    // For FREE plan, upgrade immediately
+    if (planType === PlanType.FREE) {
+      const subscription = await SubscriptionService.createFreeSubscription(userId, plan.id);
+      return NextResponse.json({
+        success: true,
+        subscription: {
+          id: subscription.id,
+          planType: plan.type,
+          status: subscription.status
+        }
       });
     }
+
+    // Create or update subscription for paid plans
+    const subscription = await SubscriptionService.createSubscription(userId, plan.id);
 
     // Create Razorpay order
     const order = await razorpay.orders.create({
@@ -64,29 +67,38 @@ export async function POST(request: NextRequest) {
         userId: userId,
         planType: planType,
         planId: plan.id,
+        subscriptionId: subscription.id,
       },
     });
 
-    // Store order details in database for verification
+    // Create invoice
     await prisma.invoice.create({
       data: {
-        subscriptionId: subscription.id, // Use subscriptionId instead of userId
+        subscriptionId: subscription.id,
+        stripeInvoiceId: order.id, // Using stripeInvoiceId for razorpay order id
         amount: plan.price,
         currency: plan.currency,
         status: 'PENDING',
-        stripeInvoiceId: order.id, // Use stripeInvoiceId for razorpay order id
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
       },
     });
 
     return NextResponse.json({
-      razorpayOrderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      planType: planType,
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      success: true,
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
+      },
+      subscription: {
+        id: subscription.id,
+        planType: plan.type,
+        status: subscription.status
+      }
     });
   } catch (error) {
-    console.error('Error creating upgrade order:', error);
+    console.error('Error creating subscription:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
