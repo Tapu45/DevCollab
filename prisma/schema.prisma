@@ -911,6 +911,10 @@ model ConnectionPrivacy {
   autoDeclineRequests       Boolean                 @default(false)
   blockedUserIds            String[]                // Array of blocked user IDs
 
+  // Add these lines:
+  profileVisibility         String                  @default("PUBLIC") // PUBLIC, PRIVATE, CONNECTIONS_ONLY
+  allowMessages             Boolean                 @default(true)
+
   user                      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt                 DateTime                @default(now())

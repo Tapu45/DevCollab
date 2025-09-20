@@ -84,15 +84,34 @@ const ConnectionButton = ({ userId, className }: ConnectionButtonProps) => {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connection-status', userId] });
-      toast.success('Request withdrawn', {
-        description: 'Your connection request has been withdrawn.',
+    onMutate: async () => {
+      // Optimistically set status to PENDING
+      await queryClient.cancelQueries({
+        queryKey: ['connection-status', userId],
       });
+      const previous = queryClient.getQueryData(['connection-status', userId]);
+      queryClient.setQueryData(['connection-status', userId], {
+        status: 'PENDING',
+        connectionId: null,
+      });
+      return { previous };
     },
-    onError: (error) => {
-      toast.error('Error', {
-        description: error.message,
+    onError: (error, _vars, context) => {
+      // Rollback on error
+      if (context?.previous) {
+        queryClient.setQueryData(
+          ['connection-status', userId],
+          context.previous,
+        );
+      }
+      toast.error('Error', { description: error.message });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['connection-status', userId],
+      });
+      toast.success('Connection request sent', {
+        description: 'The user will be notified of your request.',
       });
     },
   });

@@ -39,24 +39,24 @@ export default function HowItWorks() {
   const controlsRef = useRef<HTMLDivElement | null>(null);
 
   // poll for active button and center it inside the controls container
-  useEffect(() => {
-    const el = controlsRef.current;
-    if (!el) return;
-    const interval = setInterval(() => {
-      const activeBtn: HTMLElement | null = el.querySelector(
-        'button[data-active="true"]',
-      );
-      if (activeBtn) {
-        // center active item horizontally
-        activeBtn.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'center',
-        });
-      }
-    }, 300); // small interval to follow auto-advance
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   const el = controlsRef.current;
+  //   if (!el) return;
+  //   const interval = setInterval(() => {
+  //     const activeBtn: HTMLElement | null = el.querySelector(
+  //       'button[data-active="true"]',
+  //     );
+  //     if (activeBtn) {
+  //       // center active item horizontally
+  //       activeBtn.scrollIntoView({
+  //         behavior: 'smooth',
+  //         block: 'nearest',
+  //         inline: 'center',
+  //       });
+  //     }
+  //   }, 300); // small interval to follow auto-advance
+  //   return () => clearInterval(interval);
+  // }, []);
 
   return (
     <section className="relative bg-background py-20 overflow-hidden">

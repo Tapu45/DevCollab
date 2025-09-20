@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,7 +62,7 @@ interface GroupChatManagerProps {
 }
 
 export default function GroupChatManager({ onChatSelect, selectedChatId }: GroupChatManagerProps) {
-  const { data: session } = useSession();
+  const { user, isLoaded } = useUser();
   const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);

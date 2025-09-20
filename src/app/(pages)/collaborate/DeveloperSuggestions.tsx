@@ -219,69 +219,62 @@ export function ProjectSkillSuggestions() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {suggestions?.skillSuggestions && (
+            {Array.isArray(suggestions?.skillSuggestions) && (
               <div className="space-y-5">
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35, ease: easeOut }}
-                  className="p-4 rounded-lg ring-1 ring-[color:var(--primary)]/30 bg-[color:var(--primary)]/8
-                    hover:ring-[color:var(--primary)]/60 hover:shadow-[0_0_16px_var(--primary)] transition-all"
-                >
-                  <h3 className="font-semibold text-lg mb-2 text-[color:var(--foreground)]">
-                    {suggestions.skillSuggestions.recommendedSkill}
-                  </h3>
-                  <p className="text-sm text-[color:var(--muted-foreground)]">
-                    {suggestions.skillSuggestions.valueProposition}
-                  </p>
-                </motion.div>
-
-                <div className="grid md:grid-cols-2 gap-5">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, ease: easeOut, delay: 0.05 }}
-                  >
-                    <h4 className="font-medium mb-2 text-[color:var(--foreground)]">
-                      Learning Roadmap
-                    </h4>
-                    <ul className="list-disc list-inside text-sm space-y-1 text-[color:var(--foreground)]/90">
-                      {suggestions.skillSuggestions.learningRoadmap.map(
-                        (step, idx) => (
-                          <li key={idx}>{step}</li>
-                        ),
-                      )}
-                    </ul>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, ease: easeOut, delay: 0.08 }}
-                    className="space-y-3"
-                  >
-                    <div>
-                      <h4 className="font-medium mb-1 text-[color:var(--foreground)]">
-                        Time Investment
-                      </h4>
-                      <p className="text-sm text-[color:var(--muted-foreground)]">
-                        {suggestions.skillSuggestions.timeInvestment}
+                {suggestions.skillSuggestions.map(
+                  (skill: SkillSuggestion, idx: number) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 8 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{
+                        duration: 0.35,
+                        ease: easeOut,
+                        delay: idx * 0.05,
+                      }}
+                      className="p-4 rounded-lg ring-1 ring-[color:var(--primary)]/30 bg-[color:var(--primary)]/8
+          hover:ring-[color:var(--primary)]/60 hover:shadow-[0_0_16px_var(--primary)] transition-all mb-4"
+                    >
+                      <h3 className="font-semibold text-lg mb-2 text-[color:var(--foreground)]">
+                        {skill.recommendedSkill}
+                      </h3>
+                      <p className="text-sm text-[color:var(--muted-foreground)] mb-2">
+                        {skill.valueProposition}
                       </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-1 text-[color:var(--foreground)]">
-                        Career Impact
-                      </h4>
-                      <p className="text-sm text-[color:var(--muted-foreground)]">
-                        {suggestions.skillSuggestions.careerImpact}
-                      </p>
-                    </div>
-                  </motion.div>
-                </div>
+                      <div className="grid md:grid-cols-2 gap-5">
+                        <div>
+                          <h4 className="font-medium mb-2 text-[color:var(--foreground)]">
+                            Learning Roadmap
+                          </h4>
+                          <ul className="list-disc list-inside text-sm space-y-1 text-[color:var(--foreground)]/90">
+                            {skill.learningRoadmap.map((step, stepIdx) => (
+                              <li key={stepIdx}>{step}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <h4 className="font-medium mb-1 text-[color:var(--foreground)]">
+                              Time Investment
+                            </h4>
+                            <p className="text-sm text-[color:var(--muted-foreground)]">
+                              {skill.timeInvestment}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-medium mb-1 text-[color:var(--foreground)]">
+                              Career Impact
+                            </h4>
+                            <p className="text-sm text-[color:var(--muted-foreground)]">
+                              {skill.careerImpact}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ),
+                )}
               </div>
             )}
           </CardContent>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
+import { auth } from '@clerk/nextjs/server'; // <-- Add this import for Clerk auth
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,7 +9,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
   }
 
-  // Fetch all public info for the profile page
+  // Get the requesting user's ID (viewer) using Clerk
+  const { userId: viewerId } = await auth();
+  if (!viewerId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Fetch all public info for the profile page, including blockedUserIds
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -306,12 +313,13 @@ export async function GET(req: NextRequest) {
         }
       },
 
-      // Connection privacy
+      // Connection privacy (add blockedUserIds)
       connectionPrivacy: {
         select: {
           connectionPrivacyLevel: true,
           connectionRequestLevel: true,
           hideConnections: true,
+          blockedUserIds: true, // <-- Add this to check blocks
         }
       },
 
@@ -355,6 +363,11 @@ export async function GET(req: NextRequest) {
   // Hide if profile is private
   if (!user || user.profileVisibility === 'PRIVATE') {
     return NextResponse.json({ error: 'User not found or profile is private' }, { status: 404 });
+  }
+
+  // Block check: If viewer is in blockedUserIds, deny access
+  if (user.connectionPrivacy?.blockedUserIds?.includes(viewerId)) {
+    return NextResponse.json({ blocked: true }, { status: 403 });
   }
 
   return NextResponse.json(user);

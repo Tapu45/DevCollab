@@ -20,16 +20,12 @@ export function NotificationManager() {
               onClick: () => (window.location.href = notification.actionUrl!),
             }
           : undefined,
-        duration: 5000,
+        duration: 7000,
         position: 'bottom-right',
-        style: {
-          backgroundColor: 'var(--color-card)',
-          color: 'var(--color-card-foreground)',
-          border: '1px solid var(--color-border)',
-        },
+        className: 'neon-toast', // <-- Use your neon class!
       });
     },
   });
 
-  return null; // This component doesn't render anything
+  return null;
 }

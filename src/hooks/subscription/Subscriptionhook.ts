@@ -75,6 +75,7 @@ export const PLAN_LIMITS = {
 };
 
 export interface UserSubscriptionInfo {
+  userId: any;
   planType: PlanType;
   status: SubscriptionStatus;
   limits: typeof PLAN_LIMITS.FREE;
@@ -127,6 +128,20 @@ export function useSubscription() {
       return response.json();
     },
     enabled: !!user?.id,
+  });
+
+  const trackUsage = useMutation({
+    mutationFn: async ({ action, resource }: { action: string; resource: string }) => {
+      const response = await fetch('/api/subscription/track-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, resource }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to track usage');
+      }
+      return response.json();
+    },
   });
 
   const upgradeMutation = useMutation({
@@ -279,6 +294,7 @@ export function useSubscription() {
     getUsagePercentage,
     isNearLimit,
     getRemainingQuota,
+    trackUsage: trackUsage.mutate,
 
     // Quick access to common checks
     canCreateProject: () => canPerformAction('maxProjects', usage?.projects),

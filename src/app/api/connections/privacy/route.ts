@@ -15,8 +15,13 @@ export async function PUT(req: Request) {
       connectionRequestLevel,
       hideConnections,
       autoDeclineRequests,
-      blockedUserIds
+      blockedUserIds,
+      profileVisibility,
+      allowMessages
     } = data;
+
+    // Ensure blockedUserIds is always an array
+    const safeBlockedUserIds = Array.isArray(blockedUserIds) ? blockedUserIds : [];
 
     const updatedPrivacy = await prisma.connectionPrivacy.upsert({
       where: { userId },
@@ -25,7 +30,9 @@ export async function PUT(req: Request) {
         connectionRequestLevel,
         hideConnections,
         autoDeclineRequests,
-        blockedUserIds
+        blockedUserIds: safeBlockedUserIds,
+        profileVisibility,
+        allowMessages
       },
       create: {
         userId,
@@ -33,19 +40,25 @@ export async function PUT(req: Request) {
         connectionRequestLevel,
         hideConnections,
         autoDeclineRequests,
-        blockedUserIds: blockedUserIds ?? []
+        blockedUserIds: safeBlockedUserIds,
+        profileVisibility: profileVisibility ?? "PUBLIC",
+        allowMessages: allowMessages ?? true
       },
       select: {
         connectionPrivacyLevel: true,
         connectionRequestLevel: true,
         hideConnections: true,
         autoDeclineRequests: true,
-        blockedUserIds: true
+        blockedUserIds: true,
+        profileVisibility: true,
+        allowMessages: true
       }
     });
 
     return NextResponse.json(updatedPrivacy);
   } catch (error) {
+    // Log the error for debugging
+    console.error(error);
     return NextResponse.json(
       { error: 'Failed to update privacy settings' },
       { status: 500 }
@@ -67,7 +80,9 @@ export async function GET(req: Request) {
         connectionRequestLevel: true,
         hideConnections: true,
         autoDeclineRequests: true,
-        blockedUserIds: true
+        blockedUserIds: true,
+        profileVisibility: true,   // <-- add
+        allowMessages: true        // <-- add
       }
     });
 

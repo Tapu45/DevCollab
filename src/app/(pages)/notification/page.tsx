@@ -42,7 +42,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationCategory, NotificationPriority } from '@/generated/prisma';
 import { usePusherEvent } from '@/hooks/Pusher';
-import { useSession } from 'next-auth/react'; 
+import { useUser } from '@clerk/nextjs';
 
 // Types
 interface Notification {
@@ -205,8 +205,8 @@ export default function NotificationPage() {
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: session } = useSession();
-  const userId = session?.user?.id;
+ const { user } = useUser();
+ const userId = user?.id;
   const queryClient = useQueryClient();
 
   // Queries

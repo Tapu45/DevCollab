@@ -1,13 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { 
-  User, 
-  Shield, 
-  Bell, 
-  MessageCircle, 
-  Users, 
-  Palette, 
+import {
+  User,
+  Shield,
+  Bell,
+  MessageCircle,
+  Users,
+  Palette,
   Settings as SettingsIcon,
   ChevronRight,
   Lock,
@@ -20,7 +20,8 @@ import {
   Download,
   Upload,
   HelpCircle,
-  Info
+  Info,
+  CreditCard,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -134,6 +135,23 @@ const settingsCategories = [
       'Security management',
     ],
   },
+  {
+    id: 'subscription',
+    title: 'Subscription & Billing',
+    description:
+      'Manage your subscription, track usage, and view billing history',
+    icon: CreditCard,
+    href: '/settings/subscription',
+    color:
+      'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+    iconColor: 'text-emerald-600',
+    features: [
+      'Usage tracking',
+      'Plan management',
+      'Billing history',
+      'Upgrade options',
+    ],
+  },
 ];
 
 export default function SettingsPage() {
@@ -155,7 +173,7 @@ export default function SettingsPage() {
           className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 border border-border/50 mb-8"
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent_50%)]"></div>
-          
+
           <div className="relative p-8">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-full bg-primary/10">
@@ -177,7 +195,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {settingsCategories.map((category, index) => {
             const IconComponent = category.icon;
-            
+
             return (
               <motion.div
                 key={category.id}
@@ -185,7 +203,7 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
               >
-                <Card 
+                <Card
                   className="group cursor-pointer hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/20"
                   onClick={() => router.push(category.href)}
                 >
@@ -193,26 +211,35 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${category.color}`}>
-                          <IconComponent className={`w-5 h-5 ${category.iconColor}`} />
+                          <IconComponent
+                            className={`w-5 h-5 ${category.iconColor}`}
+                          />
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{category.title}</CardTitle>
+                          <CardTitle className="text-lg">
+                            {category.title}
+                          </CardTitle>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground mb-4">
                       {category.description}
                     </p>
-                    
+
                     <div className="space-y-2">
                       {category.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center gap-2">
+                        <div
+                          key={featureIndex}
+                          className="flex items-center gap-2"
+                        >
                           <div className="w-1.5 h-1.5 rounded-full bg-primary/60"></div>
-                          <span className="text-xs text-muted-foreground">{feature}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {feature}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -243,18 +270,22 @@ export default function SettingsPage() {
                   <Download className="w-5 h-5 text-blue-600" />
                   <div>
                     <p className="text-sm font-medium">Export Data</p>
-                    <p className="text-xs text-muted-foreground">Download your data</p>
+                    <p className="text-xs text-muted-foreground">
+                      Download your data
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <Upload className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="text-sm font-medium">Import Data</p>
-                    <p className="text-xs text-muted-foreground">Upload your data</p>
+                    <p className="text-xs text-muted-foreground">
+                      Upload your data
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <Info className="w-5 h-5 text-purple-600" />
                   <div>
@@ -262,12 +293,14 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground">Get support</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
                   <Trash2 className="w-5 h-5 text-red-600" />
                   <div>
                     <p className="text-sm font-medium">Delete Account</p>
-                    <p className="text-xs text-muted-foreground">Permanently delete</p>
+                    <p className="text-xs text-muted-foreground">
+                      Permanently delete
+                    </p>
                   </div>
                 </div>
               </div>

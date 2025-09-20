@@ -41,8 +41,14 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useUser } from '@clerk/nextjs';
 
-const fetchProfile = async (userId: string): Promise<UserProfile> => {
+const fetchProfile = async (
+  userId: string,
+): Promise<UserProfile | { blocked: true }> => {
   const res = await fetch(`/api/profile?userId=${userId}`);
+  if (res.status === 403) {
+    // Blocked by user
+    return { blocked: true };
+  }
   if (!res.ok) {
     const data = await res.json();
     throw new Error(data.error || 'Failed to fetch profile');
@@ -102,9 +108,11 @@ const itemVariants = {
   },
 };
 
+
 export default function ViewUserProfile() {
   const { userId } = useParams();
   const { user, isLoaded } = useUser(); 
+  
 
   const {
     data: profile,
@@ -159,6 +167,45 @@ export default function ViewUserProfile() {
     return null;
   }
 
+  if ('blocked' in profile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <Card className="border-primary/40 bg-primary/10 shadow-[0_0_32px_0_var(--primary)]">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle className="text-primary font-bold">
+                Umm... Access Denied!
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-lg text-primary-foreground mb-4">
+                Looks like they don&apos;t want to collaborate with you right
+                now.
+                <br />
+                Maybe try connecting with someone else? 😅
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => (window.location.href = '/collaborate')}
+                className="border-primary/40 text-primary hover:bg-primary/10"
+              >
+                Explore Network
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
   // Group skills by category
   const skillsByCategory = profile.skills.reduce((acc, skill) => {
     if (!acc[skill.category]) {
@@ -170,6 +217,42 @@ export default function ViewUserProfile() {
 
   return (
     <div className="min-h-screen bg-background">
+      {profile && (profile as any).blocked && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-[6px] bg-black/40">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.23, 1.02, 0.64, 1.01] }}
+            className="w-full max-w-md mx-auto"
+          >
+            <Card className="border-primary/40 bg-primary/10 shadow-[0_0_32px_0_var(--primary)]">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4 animate-bounce">
+                  <Users className="w-8 h-8 text-primary" />
+                </div>
+                <CardTitle className="text-primary font-bold">
+                  Umm... Access Denied!
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-lg text-primary-foreground mb-4">
+                  Looks like they don&apos;t want to collaborate with you right
+                  now.
+                  <br />
+                  Maybe try connecting with someone else? 😅
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => (window.location.href = '/my-network')}
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  Explore Network
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

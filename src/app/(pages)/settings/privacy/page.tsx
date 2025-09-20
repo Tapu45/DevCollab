@@ -1,17 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft,
-  Shield,
   Eye,
-  EyeOff,
   Users,
   UserX,
-  Lock,
-  AlertTriangle,
   Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +21,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -100,10 +95,14 @@ export default function PrivacySettingsPage() {
   const { data: privacySettings, isLoading: loadingSettings } = useQuery({
     queryKey: ['privacy', 'settings'],
     queryFn: fetchPrivacySettings,
-    onSuccess: (data) => {
-      setSettings(data);
-    },
   });
+
+  // Update local state when privacySettings changes
+  useEffect(() => {
+    if (privacySettings) {
+      setSettings(privacySettings);
+    }
+  }, [privacySettings]);
 
   const { data: blockedUsers = [], isLoading: loadingBlocked } = useQuery({
     queryKey: ['privacy', 'blocked'],
