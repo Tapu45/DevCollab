@@ -1,7 +1,26 @@
 import { logger, schedules } from "@trigger.dev/sdk";
 import { getPrismaClient, disconnectPrisma } from "@/trigger/PrismaService";
-import { SubscriptionStatus, PlanType } from "@/generated/prisma";
-import { pusher } from "@/utils/Pusher";
+
+
+// Declare enums locally (keep in sync with schema.prisma)
+export enum SubscriptionStatus {
+    TRIAL = "TRIAL",
+    ACTIVE = "ACTIVE",
+    PAST_DUE = "PAST_DUE",
+    CANCELED = "CANCELED",
+    UNPAID = "UNPAID",
+    INCOMPLETE = "INCOMPLETE",
+    INCOMPLETE_EXPIRED = "INCOMPLETE_EXPIRED",
+    EXPIRED = "EXPIRED",
+    GRACE_PERIOD = "GRACE_PERIOD",
+}
+
+export enum PlanType {
+    FREE = "FREE",
+    BASIC = "BASIC",
+    PRO = "PRO",
+    ENTERPRISE = "ENTERPRISE",
+}
 
 export const subscriptionMonitorTask = schedules.task({
     id: "subscription-monitor",
@@ -81,11 +100,7 @@ export const subscriptionMonitorTask = schedules.task({
                             }
                         });
 
-                        // Notify user about grace period
-                        await pusher.trigger(`user-${subscription.userId}`, 'subscription_grace_period', {
-                            message: 'Your subscription payment is overdue. You have 3 days to make payment.',
-                            gracePeriodEnd: gracePeriodEnd
-                        });
+                       
 
                         gracePeriodCount++;
                         logger.log("⚠️ Moved subscription to grace period", {
@@ -107,12 +122,6 @@ export const subscriptionMonitorTask = schedules.task({
                                 failedPaymentCount: 0,
                                 updatedAt: now
                             }
-                        });
-
-                        // Notify user about downgrade
-                        await pusher.trigger(`user-${subscription.userId}`, 'subscription_downgraded', {
-                            message: 'Your subscription has been downgraded to the FREE plan due to non-payment.',
-                            newPlan: 'FREE'
                         });
 
                         downgradedCount++;

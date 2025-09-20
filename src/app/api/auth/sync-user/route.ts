@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { generateUserSuggestions } from "@/trigger/generateUserSuggestions";
+
 
 export async function POST(req: NextRequest) {
     try {
@@ -53,16 +53,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Trigger suggestions only for new users
-        if (isNewUser) {
-            try {
-                await generateUserSuggestions.trigger({ userId: clerkId });
-                console.log(`Triggered suggestions for new user: ${clerkId}`);
-            } catch (error) {
-                console.error('Failed to trigger suggestions for new user:', error);
-                // Don't fail the sync if suggestions fail
-            }
-        }
+        
 
         return NextResponse.json({ user });
     } catch (error) {

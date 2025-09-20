@@ -15,7 +15,7 @@
     "template:seed": "node --loader ts-node/esm src/lib/seed/notificationTemplates.ts",
     "user:seed": "node --loader ts-node/esm prisma/seed/Userseed.ts",
     "trigger:dev": "npx trigger.dev@latest dev",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && mkdir -p src/generated/prisma && cp -r node_modules/.prisma/client/* src/generated/prisma/",
     "trigger:deploy": "prisma generate && npx trigger.dev@latest deploy"
   },
   "dependencies": {
@@ -55,7 +55,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@studio-freight/lenis": "^1.0.42",
     "@tanstack/react-query": "^5.85.5",
-    "@trigger.dev/sdk": "4.0.4",
+    "@trigger.dev/sdk": "^4.0.4",
     "@upstash/redis": "^1.35.3",
     "antd": "^5.27.0",
     "bcryptjs": "^3.0.2",
