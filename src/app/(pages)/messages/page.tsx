@@ -32,6 +32,7 @@ import ChatListItem from './minicomponents/ChatListItem';
 import MessageBubble from './minicomponents/MessageBubble';
 import { usePusherEvent } from '@/hooks/Pusher'; // <-- Added import for Pusher
 import ChatWindow from './minicomponents/ChattingWindow';
+import { usePage } from '@/context/PageContext';
 
 const fetchChats = async (): Promise<{ chats: Chat[] }> => {
   const response = await fetch('/api/messaging/chats');
@@ -86,6 +87,8 @@ export default function MessagesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const { setPageInfo } = usePage();
+
   const { user } = useAuth();
   const currentUserId = user?.id;
 
@@ -111,6 +114,10 @@ export default function MessagesPage() {
       toast.error('Failed to load conversations');
     }
   }, [chatsError]);
+
+   useEffect(() => {
+     setPageInfo('Messages', 'Chat with your network and groups'); // <-- Set page info
+   }, [setPageInfo]);
 
   useEffect(() => {
     if (chatIdFromQuery && chatIdFromQuery !== selectedChatId) {

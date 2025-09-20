@@ -5,19 +5,28 @@ export class SuggestionCacheService {
     private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
     static async getUserSuggestions(userId: string) {
-       
-
         const cache = await prisma.userSuggestionCache.findUnique({
             where: { userId },
             include: { user: { include: { skills: true, ownedProjects: true } } }
         });
 
         if (this.isCacheValid(cache)) {
-            return {
-                projectIdeas: JSON.parse(cache!.projectIdeas as string),
-                skillSuggestions: JSON.parse(cache!.skillSuggestions as string),
-                fromCache: true
-            };
+            // Add debugging here
+           
+
+            try {
+                return {
+                    projectIdeas: JSON.parse(cache!.projectIdeas as string),
+                    skillSuggestions: JSON.parse(cache!.skillSuggestions as string),
+                    fromCache: true
+                };
+            } catch (error) {
+                console.error("Error parsing cache:", error);
+                // If there's an error parsing, invalidate the cache
+                await this.invalidateUserCache(userId);
+                // And generate new suggestions
+                return await this.generateAndCacheSuggestions(userId);
+            }
         }
 
         // Generate new suggestions
@@ -25,8 +34,6 @@ export class SuggestionCacheService {
     }
 
     static async generateAndCacheSuggestions(userId: string) {
-       
-
         const user = await prisma.user.findUnique({
             where: { id: userId },
             include: {
@@ -49,6 +56,8 @@ export class SuggestionCacheService {
             AIService.suggestSkills(skills)
         ]);
 
+        
+
         // Cache the results
         const cache = await prisma.userSuggestionCache.upsert({
             where: { userId },
@@ -67,9 +76,12 @@ export class SuggestionCacheService {
             }
         });
 
+        
+
+        // Make sure we're actually returning the generated data
         return {
-            projectIdeas: JSON.parse(cache.projectIdeas as string),
-            skillSuggestions: JSON.parse(cache.skillSuggestions as string),
+            projectIdeas,
+            skillSuggestions,
             fromCache: false
         };
     }

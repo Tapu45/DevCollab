@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Button, Space, Typography, Spin } from 'antd';
 import { PlusCircle as PlusOutlined, EyeClosed as CloseOutlined, Sparkles, Rocket, Target, Zap } from 'lucide-react';
 import CreateForm from './CreateForm';
 import ProfileView from './View';
 import { useQuery } from '@tanstack/react-query';
+import { usePage } from '@/context/PageContext';
 
 const { Title, Paragraph } = Typography;
 
@@ -20,6 +21,12 @@ async function checkProfileExists(): Promise<boolean> {
 
 export default function ProfilePage() {
   const [showCreate, setShowCreate] = useState(false);
+
+   const { setPageInfo } = usePage(); // <-- Use usePage
+
+   useEffect(() => {
+     setPageInfo('Profile', 'Showcase your developer journey and skills');
+   }, [setPageInfo]);
 
   // Use TanStack Query for profile existence
   const { data: hasProfile, isLoading, isError } = useQuery({

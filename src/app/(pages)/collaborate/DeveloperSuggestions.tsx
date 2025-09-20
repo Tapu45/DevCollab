@@ -247,44 +247,134 @@ export function ProjectSkillSuggestions() {
                         ease: easeOut,
                         delay: idx * 0.05,
                       }}
-                      className="p-4 rounded-lg ring-1 ring-[color:var(--primary)]/30 bg-[color:var(--primary)]/8
-          hover:ring-[color:var(--primary)]/60 hover:shadow-[0_0_16px_var(--primary)] transition-all mb-4"
+                      className="p-6 rounded-lg ring-1 ring-[color:var(--primary)]/30 bg-[color:var(--primary)]/8
+    hover:ring-[color:var(--primary)]/60 hover:shadow-[0_0_16px_var(--primary)] transition-all mb-4"
                     >
-                      <h3 className="font-semibold text-lg mb-2 text-[color:var(--foreground)]">
-                        {skill.recommendedSkill}
+                      <h3 className="relative font-extrabold text-2xl md:text-3xl mb-2 text-center">
+                        <span
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[color:var(--primary)]/90 to-[color:var(--accent-foreground)]/90
+      text-transparent bg-clip-text shadow-[0_2px_24px_0_var(--primary)] drop-shadow-lg tracking-wide"
+                          style={{
+                            WebkitTextStroke: '1px var(--background)',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          <Zap className="h-6 w-6 text-[color:var(--primary)] drop-shadow" />
+                          {skill.recommendedSkill}
+                        </span>
+                        <span className="block mx-auto mt-2 h-1 w-16 rounded-full bg-gradient-to-r from-[color:var(--primary)] via-[color:var(--accent-foreground)] to-[color:var(--primary)] blur-[2px] opacity-70 animate-pulse" />
                       </h3>
-                      <p className="text-sm text-[color:var(--muted-foreground)] mb-2">
+                      <p className="text-sm text-[color:var(--muted-foreground)] mb-5">
                         {skill.valueProposition}
                       </p>
-                      <div className="grid md:grid-cols-2 gap-5">
-                        <div>
-                          <h4 className="font-medium mb-2 text-[color:var(--foreground)]">
-                            Learning Roadmap
-                          </h4>
-                          <ul className="list-disc list-inside text-sm space-y-1 text-[color:var(--foreground)]/90">
+
+                      {/* Learning Roadmap - Horizontal Timeline with Advanced Styling */}
+                      <div className="mb-8">
+                        <h4 className="font-medium mb-6 text-[color:var(--foreground)] flex items-center">
+                          <span className="bg-gradient-to-r from-[color:var(--primary)] to-[color:var(--accent-foreground)] w-10 h-[3px] rounded-full inline-block mr-3"></span>
+                          Learning Roadmap
+                          <span className="bg-gradient-to-r from-[color:var(--accent-foreground)] to-[color:var(--primary)] w-10 h-[3px] rounded-full inline-block ml-3"></span>
+                        </h4>
+
+                        {/* Horizontal Timeline */}
+                        <div className="relative">
+                          {/* Main Timeline Line */}
+                          <motion.div
+                            className="absolute top-[22px] left-0 h-1 bg-gradient-to-r from-[color:var(--primary)] via-[color:var(--accent-foreground)] to-[color:var(--primary)] rounded-full"
+                            initial={{ width: '0%' }}
+                            whileInView={{ width: '100%' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1.2, ease: 'easeOut' }}
+                          />
+
+                          {/* Timeline Steps */}
+                          <div className="flex justify-between relative z-10 pt-2">
                             {skill.learningRoadmap.map((step, stepIdx) => (
-                              <li key={stepIdx}>{step}</li>
+                              <motion.div
+                                key={stepIdx}
+                                className="flex flex-col items-center px-1"
+                                style={{
+                                  width: `${100 / skill.learningRoadmap.length}%`,
+                                  maxWidth: '180px',
+                                }}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{
+                                  delay: 0.5 + stepIdx * 0.1,
+                                  duration: 0.4,
+                                }}
+                              >
+                                {/* Node */}
+                                <motion.div
+                                  className="w-11 h-11 rounded-full border-4 border-[color:var(--background)] flex items-center justify-center
+                  bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--accent-foreground)] shadow-lg shadow-[color:var(--primary)]/20"
+                                  initial={{ scale: 0 }}
+                                  whileInView={{ scale: 1 }}
+                                  viewport={{ once: true }}
+                                  transition={{
+                                    type: 'spring',
+                                    stiffness: 260,
+                                    damping: 20,
+                                    delay: 0.6 + stepIdx * 0.15,
+                                  }}
+                                >
+                                  <span className="text-[color:var(--background)] font-bold text-sm">
+                                    {stepIdx + 1}
+                                  </span>
+                                </motion.div>
+
+                                {/* Step Text */}
+                                <motion.div
+                                  className="mt-3 text-center"
+                                  initial={{ opacity: 0 }}
+                                  whileInView={{ opacity: 1 }}
+                                  viewport={{ once: true }}
+                                  transition={{ delay: 0.8 + stepIdx * 0.15 }}
+                                >
+                                  <p className="text-xs text-[color:var(--foreground)]">
+                                    {step}
+                                  </p>
+                                </motion.div>
+                              </motion.div>
                             ))}
-                          </ul>
-                        </div>
-                        <div className="space-y-3">
-                          <div>
-                            <h4 className="font-medium mb-1 text-[color:var(--foreground)]">
-                              Time Investment
-                            </h4>
-                            <p className="text-sm text-[color:var(--muted-foreground)]">
-                              {skill.timeInvestment}
-                            </p>
-                          </div>
-                          <div>
-                            <h4 className="font-medium mb-1 text-[color:var(--foreground)]">
-                              Career Impact
-                            </h4>
-                            <p className="text-sm text-[color:var(--muted-foreground)]">
-                              {skill.careerImpact}
-                            </p>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Time and Career Impact - Positioned Below Roadmap */}
+                      <div className="grid grid-cols-2 gap-6 mt-8 p-4 rounded-lg bg-[color:var(--background)]/30 backdrop-blur-sm border border-[color:var(--primary)]/20">
+                        <motion.div
+                          className="space-y-2"
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 1, duration: 0.4 }}
+                        >
+                          <h4 className="font-medium text-sm flex items-center gap-2 text-[color:var(--foreground)]">
+                            <Clock className="h-4 w-4 text-[color:var(--primary)]" />
+                            Time Investment
+                          </h4>
+                          <p className="text-sm ml-6 text-[color:var(--muted-foreground)]">
+                            {skill.timeInvestment}
+                          </p>
+                        </motion.div>
+
+                        <motion.div
+                          className="space-y-2"
+                          initial={{ opacity: 0, x: 20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 1.1, duration: 0.4 }}
+                        >
+                          <h4 className="font-medium text-sm flex items-center gap-2 text-[color:var(--foreground)]">
+                            <TrendingUp className="h-4 w-4 text-[color:var(--accent-foreground)]" />
+                            Career Impact
+                          </h4>
+                          <p className="text-sm ml-6 text-[color:var(--muted-foreground)]">
+                            {skill.careerImpact}
+                          </p>
+                        </motion.div>
                       </div>
                     </motion.div>
                   ),

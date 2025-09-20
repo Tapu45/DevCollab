@@ -24,11 +24,10 @@ import {
   AlertCircle,
   Info,
   CheckCircle,
-  XCircle,
   CheckSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,10 +39,10 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationCategory, NotificationPriority } from '@/generated/prisma';
 import { usePusherEvent } from '@/hooks/Pusher';
 import { useUser } from '@clerk/nextjs';
+import { usePage } from '@/context/PageContext';
 
 // Types
 interface Notification {
@@ -217,6 +216,11 @@ export default function NotificationPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const { user } = useUser();
+   const { setPageInfo } = usePage(); // <-- Use usePage
+
+   useEffect(() => {
+     setPageInfo('Notifications', 'View and manage all your notifications');
+   }, [setPageInfo]);
   const userId = user?.id;
   const queryClient = useQueryClient();
 

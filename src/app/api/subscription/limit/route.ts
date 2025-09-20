@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
             collaborators: true
           }
         });
-        currentCount = projects.reduce((total, project) => total + project.collaborators.length, 0);
+        currentCount = projects.reduce((total: any, project: { collaborators: string | any[]; }) => total + project.collaborators.length, 0);
         maxAllowed = subscription.plan.maxTeamMembers;
         canCreate = currentCount < maxAllowed;
         reason = canCreate ? '' : `Team member limit reached (${currentCount}/${maxAllowed})`;

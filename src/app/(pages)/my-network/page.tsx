@@ -1,18 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation'; // Import useRouter for navigation
 import {
   Users,
   UserPlus,
   UserCheck,
-  Search,
   Shield,
   CheckCircle,
   XCircle,
-  RefreshCw,
   Link2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import Loader from '@/components/shared/Loader';
-import { Connection, NetworkStats } from '@/types/Network';
+import { Connection } from '@/types/Network';
 import {
   useReceivedConnections,
   useSentConnections,
@@ -50,6 +47,7 @@ import {
 } from '@/hooks/Network';
 import { ConnectionCard } from './Style';
 import ConnectedTab from './ConnectedTab';
+import { usePage } from '@/context/PageContext';
 
 // Main Component
 export default function MyNetworkPage() {
@@ -76,6 +74,15 @@ export default function MyNetworkPage() {
   const withdrawMutation = useWithdrawMutation();
   const blockMutation = useBlockMutation();
   const unblockMutation = useUnblockMutation();
+
+   const { setPageInfo } = usePage(); // <-- Use usePage
+
+   useEffect(() => {
+     setPageInfo(
+       'My Network',
+       'Manage your connections, requests, and blocked users',
+     );
+   }, [setPageInfo]);
 
   // Handlers
   const handleConnectionAction = (connectionId: string, action: string) => {

@@ -20,7 +20,7 @@ interface SkillSuggestion {
 
 interface Suggestions {
     projectIdeas: ProjectIdea[];
-    skillSuggestions: SkillSuggestion;
+    skillSuggestions: SkillSuggestion[]; // <-- Change to array
     fromCache: boolean;
 }
 

@@ -93,43 +93,71 @@ export class AIService {
     static async suggestSkills(currentSkills: string[]): Promise<SkillSuggestion[]> {
         try {
             const skillsText = currentSkills.join(", ");
+            console.log("Skills being sent to AI:", currentSkills); // Log skills
 
             const model = await ModelRouter.pick(TaskType.SkillsSuggest);
             const prompt: ChatMessage[] = [
                 {
                     role: "system",
                     content:
-                        "You are a senior tech career coach with expertise in emerging technologies. Return concise JSON strictly matching the schema. No extra text.",
+                        "You are an expert career mentor. Return concise JSON strictly matching the schema. No extra text.",
                 },
                 {
                     role: "user",
                     content:
-                        `Thoroughly analyze these user skills: ${skillsText}\n\n` +
-                        `Recommend EXACTLY 3 high-impact skills that:\n` +
-                        `- Build upon the user's current skill set\n` +
-                        `- Follow a logical progression (complement each other)\n` +
-                        `- Include modern, in-demand technologies\n` +
-                        `- Represent different aspects of development (e.g., frontend, backend, DevOps, etc.)\n` +
-                        `- Will maximize career opportunities\n\n` +
-                        `For each skill include:\n` +
+                        `Analyze these user skills and suggest EXACTLY 3 new, high-impact skills to learn next, each with:\n` +
                         `- recommendedSkill (string)\n` +
                         `- valueProposition (string)\n` +
-                        `- learningRoadmap (string[] of 4-6 clear steps)\n` +
+                        `- learningRoadmap (string[])\n` +
                         `- timeInvestment (string)\n` +
                         `- careerImpact (string)\n\n` +
-                        `Return a JSON array containing EXACTLY 3 skill suggestion objects.`
+                        `Skills: ${skillsText}\n\n` +
+                        `Return a JSON array of 3 objects.`
                 }
             ];
 
             const jsonText = await GroqChat.json(model, prompt, { temperature: 0.4, max_tokens: 1200 });
-            let parsed = JSON.parse(jsonText);
+           
 
+            let parsed;
+            try {
+                parsed = JSON.parse(jsonText);
+                // Log structure
+            } catch (error) {
+                console.error("JSON parse error:", error);
+                return [
+                    this.getFallbackSkillSuggestion(currentSkills, 0),
+                    this.getFallbackSkillSuggestion(currentSkills, 1),
+                    this.getFallbackSkillSuggestion(currentSkills, 2)
+                ];
+            }
+
+            // IMPROVED PARSING LOGIC - Handle more response formats
+            let suggestions: any[] = [];
             if (Array.isArray(parsed)) {
-                parsed = parsed.slice(0, 3);
-                while (parsed.length < 3) {
-                    parsed.push(this.getFallbackSkillSuggestion(currentSkills, parsed.length));
+              
+                suggestions = parsed;
+            } else if (parsed && Array.isArray(parsed.skillSuggestions)) {
+                suggestions = parsed.skillSuggestions;
+            } else if (parsed && typeof parsed === 'object') {
+                // Try to extract any array we can find in the response
+                for (const key in parsed) {
+                    if (Array.isArray(parsed[key]) && parsed[key].length > 0 &&
+                        parsed[key][0].recommendedSkill) {
+                        suggestions = parsed[key];
+                        break;
+                    }
                 }
-                return parsed as SkillSuggestion[];
+            }
+
+          
+
+            if (suggestions && suggestions.length) {
+                suggestions = suggestions.slice(0, 3);
+                while (suggestions.length < 3) {
+                    suggestions.push(this.getFallbackSkillSuggestion(currentSkills, suggestions.length));
+                }
+                return suggestions as SkillSuggestion[];
             }
 
             return [

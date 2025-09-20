@@ -26,6 +26,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
+import { usePage } from '@/context/PageContext';
+import { useEffect } from 'react';
 
 const settingsCategories = [
   {
@@ -156,6 +158,14 @@ const settingsCategories = [
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { setPageInfo } = usePage(); // <-- Use usePage
+
+  useEffect(() => {
+    setPageInfo(
+      'Settings',
+      'Manage your account preferences and privacy settings',
+    );
+  }, [setPageInfo]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-6">

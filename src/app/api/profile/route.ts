@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/Prisma';
-import { auth } from '@clerk/nextjs/server'; // <-- Add this import for Clerk auth
+import { auth } from '@clerk/nextjs/server';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -125,7 +125,18 @@ export async function GET(req: NextRequest) {
           status: true,
           type: true,
           createdAt: true,
-        }
+          receiver: {
+            select: {
+              id: true,
+              displayName: true,
+              username: true,
+              profilePictureUrl: true,
+            }
+          },
+        },
+        where: {
+          status: 'ACCEPTED',
+        },
       },
       receivedConnections: {
         select: {
@@ -134,7 +145,18 @@ export async function GET(req: NextRequest) {
           status: true,
           type: true,
           createdAt: true,
-        }
+          sender: {
+            select: {
+              id: true,
+              displayName: true,
+              username: true,
+              profilePictureUrl: true,
+            }
+          },
+        },
+        where: {
+          status: 'ACCEPTED',
+        },
       },
 
       // Messages (only meta, not content)
@@ -368,6 +390,29 @@ export async function GET(req: NextRequest) {
   // Block check: If viewer is in blockedUserIds, deny access
   if (user.connectionPrivacy?.blockedUserIds?.includes(viewerId)) {
     return NextResponse.json({ blocked: true }, { status: 403 });
+  }
+
+  // Merge network lists into a single array of users
+  let connections: any[] = [];
+  if (user) {
+    const sent = user.sentConnections?.map((c: any) => c.receiver) || [];
+    const received = user.receivedConnections?.map((c: any) => c.sender) || [];
+    // Remove duplicates by user id
+    const all = [...sent, ...received];
+    const seen = new Set();
+    connections = all.filter((u: any) => {
+      if (seen.has(u.id)) return false;
+      seen.add(u.id);
+      return true;
+    });
+    // Cast to any to avoid type errors
+    const userData = user as any;
+    // Remove the network fields from user object
+    delete userData.sentConnections;
+    delete userData.receivedConnections;
+    // Attach the merged connections
+    userData.connections = connections;
+    return NextResponse.json(userData);
   }
 
   return NextResponse.json(user);
